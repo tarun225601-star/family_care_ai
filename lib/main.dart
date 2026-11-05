@@ -68,17 +68,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
   };
 
   final List> aiAlertsLog = [
+  {
+    "time": "11:20 AM", 
+    "camera": "Living Room", 
+    "event": "⚡ Child movement detected near stairs (10s clip generated)",
+  },
     {
-      "time": "11:20 AM", 
-      "camera": "Living Room", 
-      "event": "⚡ Child movement detected near stairs (10s clip generated)",
-    },
-    {
-      "time": "10:05 AM", 
-      "camera": "Main Gate", 
-      "event": "📦 Delivery courier verified at doorstep",
-    }
-  ];
+    "time": "10:05 AM", 
+    "camera": "Main Gate", 
+    "event": "📦 Delivery courier verified at doorstep",
+  }
+];
+  
 
   @override
   void initState() {
