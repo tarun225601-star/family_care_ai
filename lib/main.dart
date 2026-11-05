@@ -1,11 +1,5 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
-import 'dart:convert';
-
-// =========================================================================
-// FAMILY CARE VISION AI - SOLOPRENEUR GLOBAL SAAS PLATFORM
-// Architecture: Full Single-File Standalone Production MVP (500+ Lines)
-// =========================================================================
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -24,7 +18,7 @@ class FamilyCareAIApp extends StatelessWidget {
         primarySwatch: Colors.deepOrange,
         scaffoldBackgroundColor: const Color(0xFFF4F6F9),
         useMaterial3: true,
-        cardTheme: CardThemeData(
+        cardTheme: CardTheme(
           elevation: 3,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         ),
@@ -34,9 +28,6 @@ class FamilyCareAIApp extends StatelessWidget {
   }
 }
 
-// =========================================================================
-// 1. DASHBOARD SCREEN (Core Hub, Camera Toggles, Wallet & Real-time AI Simulation)
-// =========================================================================
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
 
@@ -45,62 +36,47 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-  // Prepaid Pay-As-You-Go Wallet Balance (INR / USD Supportable)
   double walletBalance = 150.0;
   bool isSystemArmed = true;
   Timer? _aiEngineSimulationTimer;
 
-  // Connected RTSP / IP Cameras Hub Database
   final Map<String, Map<String, dynamic>> homeCameras = {
     "Living Room": {
       "active": true, 
       "ip": "rtsp://192.168.1.50:554/stream1", 
       "status": "Secure",
       "resolution": "1080p",
-      "lastEvent": "No motion"
     },
     "Balcony": {
       "active": false, 
       "ip": "rtsp://192.168.1.51:554/stream1", 
       "status": "Paused",
       "resolution": "720p",
-      "lastEvent": "Manual Pause"
     },
     "Main Gate": {
       "active": true, 
       "ip": "rtsp://192.168.1.52:554/stream1", 
       "status": "Secure",
       "resolution": "1080p",
-      "lastEvent": "Checked 5m ago"
     },
     "Kids Room": {
       "active": true, 
       "ip": "rtsp://192.168.1.53:554/stream1", 
       "status": "Secure",
       "resolution": "2K Ultra",
-      "lastEvent": "Quiet"
     }
   };
 
-  // Real-time AI Event Alerts Feed (10-second clip triggers)
   final List> aiAlertsLog = [
     {
       "time": "11:20 AM", 
       "camera": "Living Room", 
       "event": "⚡ Child movement detected near stairs (10s clip generated)",
-      "severity": "High"
     },
     {
       "time": "10:05 AM", 
       "camera": "Main Gate", 
       "event": "📦 Delivery courier verified at doorstep",
-      "severity": "Low"
-    },
-    {
-      "time": "08:30 AM", 
-      "camera": "Kids Room", 
-      "event": "☀️ Morning sunlight detected, routine clear",
-      "severity": "Normal"
     }
   ];
 
@@ -116,7 +92,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     super.dispose();
   }
 
-  // Autonomous Background AI Engine Simulation (Zero-Intervention Cloud/Edge SaaS Loop)
   void _startAIEngineBackgroundLoop() {
     _aiEngineSimulationTimer = Timer.periodic(const Duration(seconds: 12), (timer) {
       if (!mounted || !isSystemArmed) return;
@@ -124,73 +99,37 @@ class _DashboardScreenState extends State<DashboardScreen> {
       bool hasActiveCameras = homeCameras.values.any((cam) => cam["active"] == true);
       if (hasActiveCameras && walletBalance > 2.0) {
         setState(() {
-          walletBalance -= 0.50; // Micro-deduction per AI vision processing cycle
-          
-          String currentTime = TimeOfDay.now().format(context);
+          walletBalance -= 0.50;
           aiAlertsLog.insert(0, {
-            "time": currentTime,
+            "time": "Just now",
             "camera": "Living Room",
             "event": "🚨 Smart Vision AI: Activity recognized. Secure clip saved.",
-            "severity": "Medium"
           });
-          
           if (aiAlertsLog.length > 10) {
             aiAlertsLog.removeLast();
           }
         });
-
-        // Scaffold alert push simulation
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('⚡ AI Security Event: 10-sec clip sent to cloud queue!'),
-            backgroundColor: Colors.deepOrange,
-            duration: Duration(seconds: 2),
-          ),
-        );
       }
     });
   }
 
-  // 1-Click Camera Toggle Handler
   void toggleCameraAI(String cameraName, bool currentStatus) {
     setState(() {
       homeCameras[cameraName]!["active"] = !currentStatus;
       homeCameras[cameraName]!["status"] = !currentStatus ? "Secure" : "Paused";
     });
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Camera "$cameraName" AI Guard is now ${!currentStatus ? "ACTIVE" : "PAUSED"}'),
-        duration: const Duration(seconds: 1),
-        backgroundColor: !currentStatus ? Colors.green.shade700 : Colors.orange.shade800,
-      ),
-    );
   }
 
-  // Prepaid Wallet Top-Up Simulation
   void topUpWallet() {
     setState(() {
       walletBalance += 100.0;
     });
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('🎉 ₹100 successfully added to your Prepaid Wallet!'),
-        backgroundColor: Colors.green,
-      ),
-    );
   }
 
-  // Master System Arm/Disarm Toggle
   void toggleMasterSystem() {
     setState(() {
       isSystemArmed = !isSystemArmed;
     });
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(isSystemArmed ? '🔒 Master AI Security ARMED' : '🔓 Master AI Security DISARMED'),
-        backgroundColor: isSystemArmed ? Colors.green : Colors.red,
-      ),
-    );
   }
 
   @override
@@ -210,7 +149,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
           IconButton(
             icon: Icon(isSystemArmed ? Icons.shield : Icons.shield_outlined, color: Colors.white),
             onPressed: toggleMasterSystem,
-            tooltip: isSystemArmed ? 'System Armed' : 'System Disarmed',
           ),
           IconButton(
             icon: const Icon(Icons.settings, color: Colors.white),
@@ -220,7 +158,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 MaterialPageRoute(builder: (context) => const SettingsScreen()),
               );
             },
-            tooltip: 'Settings & API Keys',
           ),
         ],
       ),
@@ -229,7 +166,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Prepaid Wallet & Status Banner
             Card(
               color: Colors.white,
               child: Padding(
@@ -263,8 +199,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
             ),
             const SizedBox(height: 20),
-
-            // Connected Cameras Header
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -273,8 +207,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ],
             ),
             const SizedBox(height: 10),
-
-            // Connected Cameras List View
             SizedBox(
               height: 220,
               child: ListView(
@@ -306,12 +238,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
             ),
             const SizedBox(height: 14),
-
-            // Live AI Event Feed Header
             const Text('Live AI Event & Alert Feed', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87)),
             const SizedBox(height: 8),
-
-            // AI Event Stream Log Builder
             Expanded(
               child: ListView.builder(
                 itemCount: aiAlertsLog.length,
@@ -324,7 +252,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       leading: const Icon(Icons.bolt, color: Colors.deepOrange),
                       title: Text(alert["event"]!, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
                       subtitle: Text("Camera: ${alert['camera']} | Time: ${alert['time']}", style: const TextStyle(fontSize: 10, color: Colors.black54)),
-                      trailing: const Icon(Icons.arrow_forward_ios, size: 14, color: Colors.deepOrange),
                     ),
                   );
                 },
@@ -337,9 +264,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 }
 
-// =========================================================================
-// 2. SETTINGS SCREEN (User API Key Configuration & RTSP Stream Integration)
-// =========================================================================
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
 
@@ -354,23 +278,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _obscureKey = true;
 
   void saveConfigurations() {
-    String apiKey = _apiKeyController.text.trim();
-    String newIp = _ipController.text.trim();
-    String label = _labelController.text.trim();
-
-    if (apiKey.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('API Key cannot be empty!'), backgroundColor: Colors.red),
-      );
-      return;
-    }
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Configurations & API Keys saved successfully!'),
-        backgroundColor: Colors.green,
-      ),
-    );
     Navigator.pop(context);
   }
 
@@ -387,15 +294,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
         child: ListView(
           children: [
             const Text('Plug-and-Play Vision AI API Key:', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 6),
-            const Text('Bring your own API key to offload server computing costs entirely.', style: TextStyle(fontSize: 12, color: Colors.grey)),
             const SizedBox(height: 10),
             TextField(
               controller: _apiKeyController,
               obscureText: _obscureKey,
               decoration: InputDecoration(
                 border: const OutlineInputBorder(),
-                hintText: 'Enter your AI key (e.g. Groq / OpenAI / Custom)',
                 prefixIcon: const Icon(Icons.key, color: Colors.deepOrange),
                 suffixIcon: IconButton(
                   icon: Icon(_obscureKey ? Icons.visibility : Icons.visibility_off),
