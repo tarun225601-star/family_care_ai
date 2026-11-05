@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 
-// Global Configurations with explicit type safety to prevent casting errors
-Map<String, Map<String, dynamic>> globalEnterpriseCameras = {
+// Global Configurations without any angle brackets to prevent parsing errors
+var globalEnterpriseCameras = {
   "Main Entrance Gate": {
     "active": true,
     "ip": "rtsp://192.168.1.101:554/live",
@@ -19,10 +19,10 @@ Map<String, Map<String, dynamic>> globalEnterpriseCameras = {
   },
 };
 
-String globalCustomAIPrompt = "Detect intruders, smoke, children near stairs, and unauthorized delivery agents.";
-String globalGeminiApiKey = "AIzaSy_Demo_Gemini_Vision_Key_998877";
+var globalCustomAIPrompt = "Detect intruders, smoke, children near stairs, and unauthorized delivery agents.";
+var globalGeminiApiKey = "AIzaSy_Demo_Gemini_Vision_Key_998877";
 
-List> globalEnterpriseLogs = [
+var globalEnterpriseLogs = [
   {
     "time": "12:15 PM",
     "camera": "Main Entrance Gate",
@@ -492,7 +492,7 @@ class _EnterpriseSettingsScreenState extends State<EnterpriseSettingsScreen> {
 
   static String selectedAIModel = "Gemini 2.5 Flash Vision (Cloud)";
   
-  final List<String> availableAIModels = [
+  var availableAIModels = [
     "Gemini 2.5 Flash Vision (Cloud)",
     "Gemini 1.5 Pro Multimodal",
     "YOLOv8 Edge Model (Local/Fast)"
@@ -578,7 +578,7 @@ class _EnterpriseSettingsScreenState extends State<EnterpriseSettingsScreen> {
             style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
           ),
           const SizedBox(height: 8),
-          DropdownButtonFormField<String>(
+          DropdownButtonFormField(
             value: selectedAIModel,
             decoration: InputDecoration(
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
@@ -587,7 +587,7 @@ class _EnterpriseSettingsScreenState extends State<EnterpriseSettingsScreen> {
               fillColor: Colors.white,
             ),
             items: availableAIModels.map((model) {
-              return DropdownMenuItem<String>(
+              return DropdownMenuItem(
                 value: model,
                 child: Text(model, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
               );
