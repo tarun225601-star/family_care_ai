@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 
-// Global Configurations shared across screens (No angle brackets to avoid rendering bugs)
-var globalEnterpriseCameras = {
+// Global Configurations with explicit type safety to prevent casting errors
+Map<String, Map<String, dynamic>> globalEnterpriseCameras = {
   "Main Entrance Gate": {
     "active": true,
     "ip": "rtsp://192.168.1.101:554/live",
@@ -22,8 +22,7 @@ var globalEnterpriseCameras = {
 String globalCustomAIPrompt = "Detect intruders, smoke, children near stairs, and unauthorized delivery agents.";
 String globalGeminiApiKey = "AIzaSy_Demo_Gemini_Vision_Key_998877";
 
-// Centralized logs list without any angle brackets
-var globalEnterpriseLogs = [
+List> globalEnterpriseLogs = [
   {
     "time": "12:15 PM",
     "camera": "Main Entrance Gate",
@@ -118,7 +117,7 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
 
   void toggleCameraState(String camKey) {
     setState(() {
-      bool current = globalEnterpriseCameras[camKey]!["active"];
+      bool current = globalEnterpriseCameras[camKey]!["active"] as bool;
       globalEnterpriseCameras[camKey]!["active"] = !current;
       globalEnterpriseCameras[camKey]!["status"] = !current ? "Secure" : "Standby";
     });
@@ -300,7 +299,7 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
               itemBuilder: (context, index) {
                 String camName = globalEnterpriseCameras.keys.elementAt(index);
                 var data = globalEnterpriseCameras[camName]!;
-                bool isActive = data["active"];
+                bool isActive = data["active"] as bool;
 
                 return Container(
                   margin: const EdgeInsets.only(bottom: 10),
@@ -493,8 +492,7 @@ class _EnterpriseSettingsScreenState extends State<EnterpriseSettingsScreen> {
 
   static String selectedAIModel = "Gemini 2.5 Flash Vision (Cloud)";
   
-  // Using plain var list instead of generic angle brackets
-  var availableAIModels = [
+  final List<String> availableAIModels = [
     "Gemini 2.5 Flash Vision (Cloud)",
     "Gemini 1.5 Pro Multimodal",
     "YOLOv8 Edge Model (Local/Fast)"
