@@ -40,7 +40,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   bool isSystemArmed = true;
   Timer? _aiEngineSimulationTimer;
 
-  final Map<String, Map<String, dynamic>> homeCameras = {
+  final Map<String, dynamic> homeCameras = {
     "Living Room": {
       "active": true, 
       "ip": "rtsp://192.168.1.50:554/stream1", 
@@ -67,7 +67,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   };
 
-  final List> aiAlertsLog = [
+  // यहाँ एंगल ब्रैकेट्स हटा दिए हैं ताकि मार्कडाउन की समस्या दोबारा न आए
+  var aiAlertsLog = [
     {
       "time": "11:20 AM", 
       "camera": "Living Room", 
@@ -115,8 +116,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   void toggleCameraAI(String cameraName, bool currentStatus) {
     setState(() {
-      homeCameras[cameraName]!["active"] = !currentStatus;
-      homeCameras[cameraName]!["status"] = !currentStatus ? "Secure" : "Paused";
+      homeCameras[cameraName]["active"] = !currentStatus;
+      homeCameras[cameraName]["status"] = !currentStatus ? "Secure" : "Paused";
     });
   }
 
@@ -305,42 +306,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   icon: Icon(_obscureKey ? Icons.visibility : Icons.visibility_off),
                   onPressed: () => setState(() => _obscureKey = !_obscureKey),
                 ),
-              ),
-            ),
-            const SizedBox(height: 24),
-            const Divider(),
-            const SizedBox(height: 12),
-            const Text('Add New IP Camera Hub:', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 6),
-            TextField(
-              controller: _labelController,
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                hintText: 'Camera Label (e.g. Backyard / Kitchen)',
-                prefixIcon: Icon(Icons.label, color: Colors.deepOrange),
-              ),
-            ),
-            const SizedBox(height: 14),
-            TextField(
-              controller: _ipController,
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                hintText: 'RTSP Stream URL (rtsp://192.168.1.X:554/stream)',
-                prefixIcon: Icon(Icons.videocam_outlined, color: Colors.deepOrange),
-              ),
-            ),
-            const SizedBox(height: 36),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.deepOrange,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                ),
-                onPressed: saveConfigurations,
-                child: const Text('Save & Sync Configuration', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
               ),
             ),
           ],
