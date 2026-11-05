@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 
-// Global Cameras Map so both Dashboard and Settings can access it without any scope error
+// Global Configurations shared across screens
 Map<String, Map<String, dynamic>> globalEnterpriseCameras = {
   "Main Entrance Gate": {
     "active": true,
@@ -17,21 +17,9 @@ Map<String, Map<String, dynamic>> globalEnterpriseCameras = {
     "resolution": "1080p FHD",
     "latency": "24ms",
   },
-  "Backyard Perimeter": {
-    "active": false,
-    "ip": "rtsp://192.168.1.103:554/live",
-    "status": "Standby",
-    "resolution": "1080p FHD",
-    "latency": "--",
-  },
-  "Kids Play Zone": {
-    "active": true,
-    "ip": "rtsp://192.168.1.104:554/live",
-    "status": "Secure",
-    "resolution": "2K Quad HD",
-    "latency": "21ms",
-  }
 };
+
+String globalCustomAIPrompt = "Detect intruders, smoke, children near stairs, and unauthorized delivery agents.";
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -81,7 +69,7 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
     {
       "time": "12:15 PM",
       "camera": "Main Entrance Gate",
-      "event": "VIP Visitor identified: Authorized personnel scanned.",
+      "event": "VIP Visitor identified based on custom prompt rules.",
       "level": "Low"
     },
     {
@@ -89,12 +77,6 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
       "camera": "Living Room Hub",
       "event": "Motion recognized near secure perimeter. Clip encrypted.",
       "level": "Medium"
-    },
-    {
-      "time": "10:05 AM",
-      "camera": "Kids Play Zone",
-      "event": "Routine activity normal. Zero anomalies found.",
-      "level": "Normal"
     }
   ];
 
@@ -120,8 +102,8 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
           walletBalance -= 0.75;
           enterpriseLogs.insert(0, {
             "time": "Just now",
-            "camera": "Main Entrance Gate",
-            "event": "⚡ AI Engine: Vision processed via $activeModelChoice. Secure.",
+            "camera": "Mobile Live Sensor",
+            "event": "⚡ AI Prompt Rule Triggered: All scanned frames normal.",
             "level": "Normal"
           });
           if (enterpriseLogs.length > 15) {
@@ -198,6 +180,7 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Wallet Card
             Container(
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
@@ -206,13 +189,6 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
                   end: Alignment.bottomRight,
                 ),
                 borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF1E1B4B).withOpacity(0.3),
-                    blurRadius: 10,
-                    offset: const Offset(0, 5),
-                  )
-                ],
               ),
               padding: const EdgeInsets.all(22.0),
               child: Row(
@@ -223,7 +199,7 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
                     children: [
                       const Text(
                         'ENTERPRISE WALLET BALANCE',
-                        style: TextStyle(fontSize: 11, color: Colors.white70, fontWeight: FontWeight.bold, letterSpacing: 1.1),
+                        style: TextStyle(fontSize: 11, color: Colors.white70, fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 6),
                       Text(
@@ -243,7 +219,7 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
                           ),
                           const SizedBox(width: 6),
                           Text(
-                            isSystemArmed ? 'AI Guard Active ($activeModelChoice)' : 'System Disarmed',
+                            isSystemArmed ? 'AI Guard Active' : 'System Disarmed',
                             style: const TextStyle(fontSize: 11, color: Colors.white60, fontWeight: FontWeight.w500),
                           ),
                         ],
@@ -254,31 +230,61 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.amberAccent,
                       foregroundColor: const Color(0xFF1E1B4B),
-                      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      elevation: 0,
                     ),
                     onPressed: handleWalletTopUp,
-                    child: const Text('Top-Up ₹500', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                    child: const Text('Top-Up ₹500', style: TextStyle(fontWeight: FontWeight.bold)),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 24),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'Connected Hardware Hubs',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
+            const SizedBox(height: 20),
+
+            // MOBILE LIVE CAMERA PREVIEW & AI DETECTION BUTTON
+            Container(
+              decoration: BoxDecoration(
+                color: const Color(0xFFEEF2FF),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFF4F46E5), width: 1.5),
+              ),
+              child: ListTile(
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                leading: const CircleAvatar(
+                  backgroundColor: Color(0xFF4F46E5),
+                  child: Icon(Icons.camera_alt_rounded, color: Colors.white),
                 ),
-                Text(
-                  '${globalEnterpriseCameras.length} Nodes Active',
-                  style: const TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w600),
+                title: const Text(
+                  'Live Mobile Camera & AI Scanner',
+                  style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1E1B4B)),
                 ),
-              ],
+                subtitle: Text(
+                  'Active Prompt: "$globalCustomAIPrompt"',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 11, color: Colors.grey),
+                ),
+                trailing: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF4F46E5),
+                    foregroundColor: Colors.white,
+                  ),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const MobileCamDetectionScreen()),
+                    );
+                  },
+                  child: const Text('Open Cam'),
+                ),
+              ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 20),
+
+            const Text(
+              'Connected Hardware Hubs',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
+            ),
+            const SizedBox(height: 10),
             ListView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
@@ -289,37 +295,16 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
                 bool isActive = data["active"];
 
                 return Container(
-                  margin: const EdgeInsets.only(bottom: 12),
+                  margin: const EdgeInsets.only(bottom: 10),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: Colors.grey.shade200, width: 1),
+                    border: Border.all(color: Colors.grey.shade200),
                   ),
                   child: ListTile(
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    leading: Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: isActive ? const Color(0xFFEEF2FF) : Colors.grey.shade100,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Icon(
-                        Icons.videocam_rounded,
-                        color: isActive ? const Color(0xFF4F46E5) : Colors.grey,
-                      ),
-                    ),
-                    title: Text(
-                      camName,
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF1E293B)),
-                    ),
-                    subtitle: Padding(
-                      padding: const EdgeInsets.only(top: 4.0),
-                      child: Text(
-                        'IP: ${data["ip"]} • ${data["resolution"]}\nLatency: ${data["latency"]} | Status: ${data["status"]}',
-                        style: TextStyle(fontSize: 11, color: Colors.grey.shade600, height: 1.3),
-                      ),
-                    ),
-                    isThreeLine: true,
+                    leading: Icon(Icons.videocam_rounded, color: isActive ? const Color(0xFF4F46E5) : Colors.grey),
+                    title: Text(camName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                    subtitle: Text('IP: ${data["ip"]} • Status: ${data["status"]}', style: const TextStyle(fontSize: 11)),
                     trailing: Switch.adaptive(
                       value: isActive,
                       activeColor: const Color(0xFF4F46E5),
@@ -334,7 +319,7 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
               'Live Enterprise Event Intelligence',
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 10),
             ListView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
@@ -342,31 +327,23 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
               itemBuilder: (context, index) {
                 var log = enterpriseLogs[index];
                 return Container(
-                  margin: const EdgeInsets.only(bottom: 10),
-                  padding: const EdgeInsets.all(14),
+                  margin: const EdgeInsets.only(bottom: 8),
+                  padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: Colors.indigo.shade50, width: 1.5),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.indigo.shade50),
                   ),
                   child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Icon(Icons.bolt_rounded, color: Color(0xFF4F46E5), size: 20),
-                      const SizedBox(width: 12),
+                      const Icon(Icons.bolt_rounded, color: Color(0xFF4F46E5), size: 18),
+                      const SizedBox(width: 10),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              log["event"]!,
-                              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12.5, color: Color(0xFF1E293B)),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'Node: ${log["camera"]}  •  Time: ${log["time"]}',
-                              style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
-                            ),
+                            Text(log["event"]!, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12)),
+                            Text('Time: ${log["time"]}', style: const TextStyle(fontSize: 10, color: Colors.grey)),
                           ],
                         ),
                       ),
@@ -382,6 +359,99 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
   }
 }
 
+// =========================================================================
+// MOBILE LIVE CAMERA DEMO & AI OBJECT DETECTION SCREEN
+// =========================================================================
+class MobileCamDetectionScreen extends StatefulWidget {
+  const MobileCamDetectionScreen({super.key});
+
+  @override
+  State<MobileCamDetectionScreen> createState() => _MobileCamDetectionScreenState();
+}
+
+class _MobileCamDetectionScreenState extends State<MobileCamDetectionScreen> {
+  bool isDetecting = true;
+  String detectedObject = "Scanning frame for custom prompt...";
+
+  @override
+  void initState() {
+    super.initState();
+    // Simulate real-time object recognition based on user's custom prompt
+    Timer.periodic(const Duration(seconds: 3), (timer) {
+      if (!mounted) return;
+      setState(() {
+        detectedObject = "⚡ Object Recognized: Human Face & Motion Verified (Confidence: 98.4%)";
+      });
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        title: const Text('Live Mobile AI Camera Stream', style: TextStyle(color: Colors.white, fontSize: 16)),
+        backgroundColor: Colors.black,
+        iconTheme: const IconThemeData(color: Colors.white),
+      ),
+      body: Stack(
+        children: [
+          Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.camera_front_rounded, size: 80, color: Colors.white54),
+                const SizedBox(height: 20),
+                const Text(
+                  '📱 Mobile Camera Active (Demo Stream)',
+                  style: TextStyle(color: Colors.white70, fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 10),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 30.0),
+                  child: Text(
+                    'Active Prompt Filter: "$globalCustomAIPrompt"',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(color: Colors.amberAccent, fontSize: 12),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Positioned(
+            bottom: 30,
+            left: 20,
+            right: 20,
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.black.withOpacity(0.8),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.greenAccent, width: 1.5),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.bolt_rounded, color: Colors.greenAccent),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      detectedObject,
+                      style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// =========================================================================
+// SETTINGS SCREEN WITH PROMPT INPUT & MODEL SELECTION
+// =========================================================================
 class EnterpriseSettingsScreen extends StatefulWidget {
   const EnterpriseSettingsScreen({super.key});
 
@@ -393,6 +463,7 @@ class _EnterpriseSettingsScreenState extends State<EnterpriseSettingsScreen> {
   final TextEditingController _apiKeyController = TextEditingController(text: "sk_live_enterprise_998877665544");
   final TextEditingController _nodeIpController = TextEditingController();
   final TextEditingController _nodeNameController = TextEditingController();
+  final TextEditingController _promptController = TextEditingController(text: globalCustomAIPrompt);
   bool _hideApiKey = true;
 
   static String selectedAIModel = "YOLOv8 Edge Model (Local/Fast)";
@@ -405,6 +476,7 @@ class _EnterpriseSettingsScreenState extends State<EnterpriseSettingsScreen> {
   void _saveSystemConfiguration() {
     String name = _nodeNameController.text.trim();
     String ip = _nodeIpController.text.trim();
+    globalCustomAIPrompt = _promptController.text.trim();
 
     if (name.isNotEmpty && ip.isNotEmpty) {
       globalEnterpriseCameras[name] = {
@@ -418,7 +490,7 @@ class _EnterpriseSettingsScreenState extends State<EnterpriseSettingsScreen> {
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('Enterprise Configuration synchronized successfully!'),
+        content: Text('Enterprise Prompt & Node Configuration synchronized!'),
         backgroundColor: Color(0xFF1E1B4B),
         behavior: SnackBarBehavior.floating,
       ),
@@ -438,6 +510,22 @@ class _EnterpriseSettingsScreenState extends State<EnterpriseSettingsScreen> {
       body: ListView(
         padding: const EdgeInsets.all(20.0),
         children: [
+          const Text(
+            'Custom AI Detection Prompt / Instructions:',
+            style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
+          ),
+          const SizedBox(height: 8),
+          TextField(
+            controller: _promptController,
+            maxLines: 3,
+            decoration: InputDecoration(
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              hintText: 'Enter what AI should look for (e.g., Detect smoke, intruder, pets)...',
+              filled: true,
+              fillColor: Colors.white,
+            ),
+          ),
+          const SizedBox(height: 24),
           const Text(
             'Global Vision AI API Authorization Key:',
             style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
