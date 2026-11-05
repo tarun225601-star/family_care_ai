@@ -3,260 +3,393 @@ import 'dart:async';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(const FamilyCareAIApp());
+  runApp(const FamilyCareVIPApp());
 }
 
-class FamilyCareAIApp extends StatelessWidget {
-  const FamilyCareAIApp({super.key});
+class FamilyCareVIPApp extends StatelessWidget {
+  const FamilyCareVIPApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Family Care Vision AI',
+      title: 'Family Care Vision AI Enterprise',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        primarySwatch: Colors.deepOrange,
-        scaffoldBackgroundColor: const Color(0xFFF4F6F9),
         useMaterial3: true,
-        cardTheme: CardTheme(
-          elevation: 3,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color(0xFF1E1B4B), // Deep Indigo VIP Theme
+          brightness: Brightness.light,
+        ),
+        scaffoldBackgroundColor: const Color(0xFFF8FAFC),
+        cardTheme: CardThemeData(
+          elevation: 4,
+          shadowColor: Colors.black.withOpacity(0.08),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         ),
       ),
-      home: const DashboardScreen(),
+      home: const EnterpriseDashboardScreen(),
     );
   }
 }
 
-class DashboardScreen extends StatefulWidget {
-  const DashboardScreen({super.key});
+// =========================================================================
+// ENTERPRISE DASHBOARD SCREEN (Core Hub, Cameras, Wallet & AI Simulation)
+// =========================================================================
+class EnterpriseDashboardScreen extends StatefulWidget {
+  const EnterpriseDashboardScreen({super.key});
 
   @override
-  State<DashboardScreen> createState() => _DashboardScreenState();
+  State<EnterpriseDashboardScreen> createState() => _EnterpriseDashboardScreenState();
 }
 
-class _DashboardScreenState extends State<DashboardScreen> {
-  double walletBalance = 150.0;
+class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
+  double walletBalance = 2450.00; // Enterprise Prepaid Pay-As-You-Go Wallet in INR
   bool isSystemArmed = true;
-  Timer? _aiEngineSimulationTimer;
+  Timer? _aiSimulationTimer;
+  String activeModelChoice = "YOLOv8 Edge Model (Local/Fast)";
 
-  final Map<String, dynamic> homeCameras = {
-    "Living Room": {
-      "active": true, 
-      "ip": "rtsp://192.168.1.50:554/stream1", 
+  // Global Hub Cameras Database
+  static final Map<String, Map<String, dynamic>> enterpriseCameras = {
+    "Main Entrance Gate": {
+      "active": true,
+      "ip": "rtsp://192.168.1.101:554/live",
       "status": "Secure",
-      "resolution": "1080p",
+      "resolution": "4K Ultra HD",
+      "latency": "18ms",
     },
-    "Balcony": {
-      "active": false, 
-      "ip": "rtsp://192.168.1.51:554/stream1", 
-      "status": "Paused",
-      "resolution": "720p",
-    },
-    "Main Gate": {
-      "active": true, 
-      "ip": "rtsp://192.168.1.52:554/stream1", 
+    "Living Room Hub": {
+      "active": true,
+      "ip": "rtsp://192.168.1.102:554/live",
       "status": "Secure",
-      "resolution": "1080p",
+      "resolution": "1080p FHD",
+      "latency": "24ms",
     },
-    "Kids Room": {
-      "active": true, 
-      "ip": "rtsp://192.168.1.53:554/stream1", 
+    "Backyard Perimeter": {
+      "active": false,
+      "ip": "rtsp://192.168.1.103:554/live",
+      "status": "Standby",
+      "resolution": "1080p FHD",
+      "latency": "--",
+    },
+    "Kids Play Zone": {
+      "active": true,
+      "ip": "rtsp://192.168.1.104:554/live",
       "status": "Secure",
-      "resolution": "2K Ultra",
+      "resolution": "2K Quad HD",
+      "latency": "21ms",
     }
   };
 
-  // यहाँ एंगल ब्रैकेट्स हटा दिए हैं ताकि मार्कडाउन की समस्या दोबारा न आए
-  var aiAlertsLog = [
+  // Real-time Event Feed Logs
+  final List> enterpriseLogs = [
     {
-      "time": "11:20 AM", 
-      "camera": "Living Room", 
-      "event": "⚡ Child movement detected near stairs (10s clip generated)",
+      "time": "12:15 PM",
+      "camera": "Main Entrance Gate",
+      "event": "VIP Visitor identified: Authorized personnel scanned.",
+      "level": "Low"
     },
     {
-      "time": "10:05 AM", 
-      "camera": "Main Gate", 
-      "event": "📦 Delivery courier verified at doorstep",
+      "time": "11:40 AM",
+      "camera": "Living Room Hub",
+      "event": "Motion recognized near secure perimeter. Clip encrypted.",
+      "level": "Medium"
+    },
+    {
+      "time": "10:05 AM",
+      "camera": "Kids Play Zone",
+      "event": "Routine activity normal. Zero anomalies found.",
+      "level": "Normal"
     }
   ];
 
   @override
   void initState() {
     super.initState();
-    _startAIEngineBackgroundLoop();
+    _initAutonomousEngine();
   }
 
   @override
   void dispose() {
-    _aiEngineSimulationTimer?.cancel();
+    _aiSimulationTimer?.cancel();
     super.dispose();
   }
 
-  void _startAIEngineBackgroundLoop() {
-    _aiEngineSimulationTimer = Timer.periodic(const Duration(seconds: 12), (timer) {
+  // Autonomous SaaS Micro-billing & AI Event Simulation Loop
+  void _initAutonomousEngine() {
+    _aiSimulationTimer = Timer.periodic(const Duration(seconds: 10), (timer) {
       if (!mounted || !isSystemArmed) return;
-      
-      bool hasActiveCameras = homeCameras.values.any((cam) => cam["active"] == true);
-      if (hasActiveCameras && walletBalance > 2.0) {
+
+      bool activeCheck = enterpriseCameras.values.any((c) => c["active"] == true);
+      if (activeCheck && walletBalance > 5.0) {
         setState(() {
-          walletBalance -= 0.50;
-          aiAlertsLog.insert(0, {
+          walletBalance -= 0.75; // Per-inference cloud/edge micro-deduction
+          enterpriseLogs.insert(0, {
             "time": "Just now",
-            "camera": "Living Room",
-            "event": "🚨 Smart Vision AI: Activity recognized. Secure clip saved.",
+            "camera": "Main Entrance Gate",
+            "event": "⚡ AI Engine: Vision processed via $activeModelChoice. Secure.",
+            "level": "Normal"
           });
-          if (aiAlertsLog.length > 10) {
-            aiAlertsLog.removeLast();
+          if (enterpriseLogs.length > 15) {
+            enterpriseLogs.removeLast();
           }
         });
       }
     });
   }
 
-  void toggleCameraAI(String cameraName, bool currentStatus) {
+  void toggleCameraState(String camKey) {
     setState(() {
-      homeCameras[cameraName]["active"] = !currentStatus;
-      homeCameras[cameraName]["status"] = !currentStatus ? "Secure" : "Paused";
+      bool current = enterpriseCameras[camKey]!["active"];
+      enterpriseCameras[camKey]!["active"] = !current;
+      enterpriseCameras[camKey]!["status"] = !current ? "Secure" : "Standby";
     });
   }
 
-  void topUpWallet() {
+  void handleWalletTopUp() {
     setState(() {
-      walletBalance += 100.0;
+      walletBalance += 500.0;
     });
-  }
-
-  void toggleMasterSystem() {
-    setState(() {
-      isSystemArmed = !isSystemArmed;
-    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('🎉 ₹500 successfully added to Enterprise Wallet!'),
+        backgroundColor: Color(0xFF0F172A),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        elevation: 0,
+        backgroundColor: const Color(0xFF1E1B4B), // Rich Indigo VIP Header
         title: const Row(
           children: [
-            Icon(Icons.remove_red_eye, color: Colors.white),
-            SizedBox(width: 8),
-            Text('Family Care AI SaaS', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            Icon(Icons.shield_rounded, color: Colors.amberAccent, size: 28),
+            SizedBox(width: 10),
+            Text(
+              'Family Care Enterprise',
+              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+            ),
           ],
         ),
-        backgroundColor: Colors.deepOrange,
-        elevation: 4,
         actions: [
           IconButton(
-            icon: Icon(isSystemArmed ? Icons.shield : Icons.shield_outlined, color: Colors.white),
-            onPressed: toggleMasterSystem,
+            icon: Icon(
+              isSystemArmed ? Icons.lock_rounded : Icons.lock_open_rounded,
+              color: isSystemArmed ? Colors.greenAccent : Colors.redAccent,
+            ),
+            onPressed: () {
+              setState(() {
+                isSystemArmed = !isSystemArmed;
+              });
+            },
+            tooltip: isSystemArmed ? 'System Armed' : 'System Disarmed',
           ),
           IconButton(
-            icon: const Icon(Icons.settings, color: Colors.white),
-            onPressed: () {
-              Navigator.push(
+            icon: const Icon(Icons.settings_suggest_rounded, color: Colors.white),
+            onPressed: () async {
+              await Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => const SettingsScreen()),
+                MaterialPageRoute(builder: (context) => const EnterpriseSettingsScreen()),
               );
+              setState(() {});
             },
+            tooltip: 'Settings & Config',
           ),
         ],
       ),
-      body: Padding(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Card(
-              color: Colors.white,
-              child: Padding(
-                padding: const EdgeInsets.all(18.0),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text('Prepaid Wallet (Pay-As-You-Go)', style: TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.bold)),
-                        const SizedBox(height: 4),
-                        Text('₹${walletBalance.toStringAsFixed(2)}', style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Colors.deepOrange)),
-                        const SizedBox(height: 2),
-                        Text(isSystemArmed ? "🟢 AI Engine: Active" : "🔴 AI Engine: Disarmed", style: TextStyle(fontSize: 11, color: isSystemArmed ? Colors.green : Colors.red, fontWeight: FontWeight.w600)),
-                      ],
-                    ),
-                    ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.deepOrange,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                      ),
-                      onPressed: topUpWallet,
-                      icon: const Icon(Icons.account_balance_wallet, size: 18),
-                      label: const Text('Top-Up ₹100', style: TextStyle(fontWeight: FontWeight.bold)),
-                    ),
-                  ],
+            // VIP Financial & Status Wallet Card
+            Container(
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF1E1B4B), Color(0xFF312E81)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
                 ),
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF1E1B4B).withOpacity(0.3),
+                    blurRadius: 10,
+                    offset: const Offset(0, 5),
+                  )
+                ],
+              ),
+              padding: const EdgeInsets.all(22.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'ENTERPRISE WALLET BALANCE',
+                        style: TextStyle(fontSize: 11, color: Colors.white70, fontWeight: FontWeight.bold, letterSpacing: 1.1),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        '₹${walletBalance.toStringAsFixed(2)}',
+                        style: const TextStyle(fontSize: 30, fontWeight: FontWeight.bold, color: Colors.white),
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Container(
+                            width: 8,
+                            height: 8,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: isSystemArmed ? Colors.greenAccent : Colors.redAccent,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            isSystemArmed ? 'AI Guard Active ($activeModelChoice)' : 'System Disarmed',
+                            style: const TextStyle(fontSize: 11, color: Colors.white60, fontWeight: FontWeight.w500),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.amberAccent,
+                      foregroundColor: const Color(0xFF1E1B4B),
+                      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      elevation: 0,
+                    ),
+                    onPressed: handleWalletTopUp,
+                    child: const Text('Top-Up ₹500', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 24),
+
+            // Section Header: Connected Hub Cameras
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('Connected Home Hub Cameras', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87)),
-                Text('${homeCameras.length} Devices Linked', style: const TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w500)),
+                const Text(
+                  'Connected Hardware Hubs',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
+                ),
+                Text(
+                  '${enterpriseCameras.length} Nodes Active',
+                  style: const TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w600),
+                ),
               ],
             ),
-            const SizedBox(height: 10),
-            SizedBox(
-              height: 220,
-              child: ListView(
-                children: homeCameras.entries.map((entry) {
-                  String camName = entry.key;
-                  bool isActive = entry.value["active"];
-                  String ipAddress = entry.value["ip"];
-                  String resolution = entry.value["resolution"];
+            const SizedBox(height: 12),
 
-                  return Card(
-                    margin: const EdgeInsets.symmetric(vertical: 4),
-                    child: ListTile(
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-                      leading: CircleAvatar(
-                        backgroundColor: isActive ? Colors.deepOrange.shade100 : Colors.grey.shade200,
-                        child: Icon(Icons.videocam, color: isActive ? Colors.deepOrange : Colors.grey),
+            // Cameras List View Container
+            ListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: enterpriseCameras.length,
+              itemBuilder: (context, index) {
+                String camName = enterpriseCameras.keys.elementAt(index);
+                var data = enterpriseCameras[camName]!;
+                bool isActive = data["active"];
+
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: Colors.grey.shade200, width: 1),
+                  ),
+                  child: ListTile(
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    leading: Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: isActive ? const Color(0xFFEEF2FF) : Colors.grey.shade100,
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                      title: Text(camName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                      subtitle: Text('IP: $ipAddress ($resolution)\nStatus: ${isActive ? "AI Guard Active" : "Paused"}', style: TextStyle(fontSize: 11, color: Colors.grey.shade700)),
-                      isThreeLine: true,
-                      trailing: Switch(
-                        value: isActive,
-                        activeColor: Colors.deepOrange,
-                        onChanged: (val) => toggleCameraAI(camName, isActive),
+                      child: Icon(
+                        Icons.videocam_rounded,
+                        color: isActive ? const Color(0xFF4F46E5) : Colors.grey,
                       ),
                     ),
-                  );
-                }).toList(),
-              ),
+                    title: Text(
+                      camName,
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF1E293B)),
+                    ),
+                    subtitle: Padding(
+                      padding: const EdgeInsets.only(top: 4.0),
+                      child: Text(
+                        'IP: ${data["ip"]} • ${data["resolution"]}\nLatency: ${data["latency"]} | Status: ${data["status"]}',
+                        style: TextStyle(fontSize: 11, color: Colors.grey.shade600, height: 1.3),
+                      ),
+                    ),
+                    isThreeLine: true,
+                    trailing: Switch.adaptive(
+                      value: isActive,
+                      activeColor: const Color(0xFF4F46E5),
+                      onChanged: (val) => toggleCameraState(camName),
+                    ),
+                  ),
+                );
+              },
             ),
-            const SizedBox(height: 14),
-            const Text('Live AI Event & Alert Feed', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87)),
-            const SizedBox(height: 8),
-            Expanded(
-              child: ListView.builder(
-                itemCount: aiAlertsLog.length,
-                itemBuilder: (context, index) {
-                  var alert = aiAlertsLog[index];
-                  return Card(
-                    color: Colors.orange.shade50,
-                    margin: const EdgeInsets.symmetric(vertical: 4),
-                    child: ListTile(
-                      leading: const Icon(Icons.bolt, color: Colors.deepOrange),
-                      title: Text(alert["event"]!, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
-                      subtitle: Text("Camera: ${alert['camera']} | Time: ${alert['time']}", style: const TextStyle(fontSize: 10, color: Colors.black54)),
-                    ),
-                  );
-                },
-              ),
+            const SizedBox(height: 20),
+
+            // Section Header: Live Feed Logs
+            const Text(
+              'Live Enterprise Event Intelligence',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
+            ),
+            const SizedBox(height: 12),
+
+            // Logs Feed Builder
+            ListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: enterpriseLogs.length,
+              itemBuilder: (context, index) {
+                var log = enterpriseLogs[index];
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 10),
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: Colors.indigo.shade50, width: 1.5),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Icon(Icons.bolt_rounded, color: Color(0xFF4F46E5), size: 20),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              log["event"]!,
+                              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12.5, color: Color(0xFF1E293B)),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Node: ${log["camera"]}  •  Time: ${log["time"]}',
+                              style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
             ),
           ],
         ),
@@ -265,20 +398,50 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 }
 
-class SettingsScreen extends StatefulWidget {
-  const SettingsScreen({super.key});
+// =========================================================================
+// ENTERPRISE SETTINGS SCREEN (API Keys, Dual AI Models & RTSP Node Integration)
+// =========================================================================
+class EnterpriseSettingsScreen extends StatefulWidget {
+  const EnterpriseSettingsScreen({super.key});
 
   @override
-  State<SettingsScreen> createState() => _SettingsScreenState();
+  State<EnterpriseSettingsScreen> createState() => _EnterpriseSettingsScreenState();
 }
 
-class _SettingsScreenState extends State<SettingsScreen> {
-  final TextEditingController _apiKeyController = TextEditingController(text: "sk-proj-visionai-live-key-9988");
-  final TextEditingController _ipController = TextEditingController();
-  final TextEditingController _labelController = TextEditingController();
-  bool _obscureKey = true;
+class _EnterpriseSettingsScreenState extends State<EnterpriseSettingsScreen> {
+  final TextEditingController _apiKeyController = TextEditingController(text: "sk_live_enterprise_998877665544");
+  final TextEditingController _nodeIpController = TextEditingController();
+  final TextEditingController _nodeNameController = TextEditingController();
+  bool _hideApiKey = true;
 
-  void saveConfigurations() {
+  static String selectedAIModel = "YOLOv8 Edge Model (Local/Fast)";
+  final List<String> availableAIModels = [
+    "YOLOv8 Edge Model (Local/Fast)",
+    "Custom Cloud Vision LLM (High Accuracy)",
+    "Hybrid Neural Mesh (Edge + Cloud Sync)"
+  ];
+
+  void _saveSystemConfiguration() {
+    String name = _nodeNameController.text.trim();
+    String ip = _nodeIpController.text.trim();
+
+    if (name.isNotEmpty && ip.isNotEmpty) {
+      EnterpriseDashboardScreen.enterpriseCameras[name] = {
+        "active": true,
+        "ip": ip,
+        "status": "Secure",
+        "resolution": "1080p FHD",
+        "latency": "15ms",
+      };
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Enterprise Configuration synchronized successfully!'),
+        backgroundColor: Color(0xFF1E1B4B),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
     Navigator.pop(context);
   }
 
@@ -286,30 +449,109 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('App Settings & API Keys', style: TextStyle(color: Colors.white)),
-        backgroundColor: Colors.deepOrange,
+        title: const Text('Enterprise Configuration', style: TextStyle(color: Colors.white, fontSize: 17)),
+        backgroundColor: const Color(0xFF1E1B4B),
         iconTheme: const IconThemeData(color: Colors.white),
+        elevation: 0,
       ),
-      body: Padding(
+      body: ListView(
         padding: const EdgeInsets.all(20.0),
-        child: ListView(
-          children: [
-            const Text('Plug-and-Play Vision AI API Key:', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 10),
-            TextField(
-              controller: _apiKeyController,
-              obscureText: _obscureKey,
-              decoration: InputDecoration(
-                border: const OutlineInputBorder(),
-                prefixIcon: const Icon(Icons.key, color: Colors.deepOrange),
-                suffixIcon: IconButton(
-                  icon: Icon(_obscureKey ? Icons.visibility : Icons.visibility_off),
-                  onPressed: () => setState(() => _obscureKey = !_obscureKey),
-                ),
+        children: [
+          const Text(
+            'Global Vision AI API Authorization Key:',
+            style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
+          ),
+          const SizedBox(height: 8),
+          TextField(
+            controller: _apiKeyController,
+            obscureText: _hideApiKey,
+            decoration: InputDecoration(
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              prefixIcon: const Icon(Icons.key_rounded, color: Color(0xFF4F46E5)),
+              suffixIcon: IconButton(
+                icon: Icon(_hideApiKey ? Icons.visibility_rounded : Icons.visibility_off_rounded),
+                onPressed: () => setState(() => _hideApiKey = !_hideApiKey),
+              ),
+              filled: true,
+              fillColor: Colors.white,
+            ),
+          ),
+          const SizedBox(height: 24),
+          const Text(
+            'Select Active Neural Inference Engine:',
+            style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
+          ),
+          const SizedBox(height: 8),
+          DropdownButtonFormField<String>(
+            value: selectedAIModel,
+            decoration: InputDecoration(
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              prefixIcon: const Icon(Icons.memory_rounded, color: Color(0xFF4F46E5)),
+              filled: true,
+              fillColor: Colors.white,
+            ),
+            items: availableAIModels.map((String model) {
+              return DropdownMenuItem<String>(
+                value: model,
+                child: Text(model, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+              );
+            }).toList(),
+            onChanged: (String? val) {
+              if (val != null) {
+                setState(() {
+                  selectedAIModel = val;
+                });
+              }
+            },
+          ),
+          const SizedBox(height: 24),
+          const Divider(thickness: 1.5),
+          const SizedBox(height: 16),
+          const Text(
+            'Provision New RTSP Hardware Node:',
+            style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _nodeNameController,
+            decoration: InputDecoration(
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              hintText: 'Node Location (e.g. Server Room)',
+              prefixIcon: const Icon(Icons.label_rounded, color: Color(0xFF4F46E5)),
+              filled: true,
+              fillColor: Colors.white,
+            ),
+          ),
+          const SizedBox(height: 14),
+          TextField(
+            controller: _nodeIpController,
+            decoration: InputDecoration(
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              hintText: 'RTSP Address (rtsp://192.168.X.X:554/live)',
+              prefixIcon: const Icon(Icons.router_rounded, color: Color(0xFF4F46E5)),
+              filled: true,
+              fillColor: Colors.white,
+            ),
+          ),
+          const SizedBox(height: 40),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF1E1B4B),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                elevation: 2,
+              ),
+              onPressed: _saveSystemConfiguration,
+              child: const Text(
+                'Save & Deploy Node Configuration',
+                style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
