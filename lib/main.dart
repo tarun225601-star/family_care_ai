@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 
-// Global Configurations shared across screens
-Map<String, Map<String, dynamic>> globalEnterpriseCameras = {
+// Global Configurations shared across screens (No angle brackets to avoid rendering bugs)
+var globalEnterpriseCameras = {
   "Main Entrance Gate": {
     "active": true,
     "ip": "rtsp://192.168.1.101:554/live",
@@ -22,8 +22,8 @@ Map<String, Map<String, dynamic>> globalEnterpriseCameras = {
 String globalCustomAIPrompt = "Detect intruders, smoke, children near stairs, and unauthorized delivery agents.";
 String globalGeminiApiKey = "AIzaSy_Demo_Gemini_Vision_Key_998877";
 
-// Separate centralized logs list for the dedicated logs dashboard
-List> globalEnterpriseLogs = [
+// Centralized logs list without any angle brackets
+var globalEnterpriseLogs = [
   {
     "time": "12:15 PM",
     "camera": "Main Entrance Gate",
@@ -154,7 +154,6 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
           ],
         ),
         actions: [
-          // Dedicated Button for Separate Logs Dashboard
           IconButton(
             icon: const Icon(Icons.analytics_rounded, color: Colors.amberAccent),
             tooltip: 'View Event Intelligence Logs',
@@ -193,7 +192,6 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Wallet Card
             Container(
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
@@ -252,8 +250,6 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
               ),
             ),
             const SizedBox(height: 20),
-
-            // MOBILE LIVE CAMERA PREVIEW & AI DETECTION BUTTON
             Container(
               decoration: BoxDecoration(
                 color: const Color(0xFFEEF2FF),
@@ -292,7 +288,6 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
               ),
             ),
             const SizedBox(height: 24),
-
             const Text(
               'Connected Hardware Hubs',
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
@@ -334,9 +329,6 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
   }
 }
 
-// =========================================================================
-// SEPARATE DEDICATED LOGS DASHBOARD SCREEN
-// =========================================================================
 class EnterpriseLogsScreen extends StatelessWidget {
   const EnterpriseLogsScreen({super.key});
 
@@ -400,9 +392,6 @@ class EnterpriseLogsScreen extends StatelessWidget {
   }
 }
 
-// =========================================================================
-// MOBILE LIVE CAMERA DEMO & GEMINI AI OBJECT DETECTION SCREEN
-// =========================================================================
 class MobileCamDetectionScreen extends StatefulWidget {
   const MobileCamDetectionScreen({super.key});
 
@@ -488,9 +477,6 @@ class _MobileCamDetectionScreenState extends State<MobileCamDetectionScreen> {
   }
 }
 
-// =========================================================================
-// SETTINGS SCREEN WITH GEMINI API KEY, PROMPT & CAMERA NODE CONFIG
-// =========================================================================
 class EnterpriseSettingsScreen extends StatefulWidget {
   const EnterpriseSettingsScreen({super.key});
 
@@ -506,7 +492,9 @@ class _EnterpriseSettingsScreenState extends State<EnterpriseSettingsScreen> {
   bool _hideGeminiKey = true;
 
   static String selectedAIModel = "Gemini 2.5 Flash Vision (Cloud)";
-  final List<String> availableAIModels = [
+  
+  // Using plain var list instead of generic angle brackets
+  var availableAIModels = [
     "Gemini 2.5 Flash Vision (Cloud)",
     "Gemini 1.5 Pro Multimodal",
     "YOLOv8 Edge Model (Local/Fast)"
@@ -600,13 +588,13 @@ class _EnterpriseSettingsScreenState extends State<EnterpriseSettingsScreen> {
               filled: true,
               fillColor: Colors.white,
             ),
-            items: availableAIModels.map((String model) {
+            items: availableAIModels.map((model) {
               return DropdownMenuItem<String>(
                 value: model,
                 child: Text(model, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
               );
             }).toList(),
-            onChanged: (String? val) {
+            onChanged: (val) {
               if (val != null) {
                 setState(() {
                   selectedAIModel = val;
