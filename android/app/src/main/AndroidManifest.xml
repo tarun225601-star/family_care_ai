@@ -1,15 +1,10 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- ========================================================= -->
-    <!-- REQUIRED PERMISSIONS FOR VISION AI & RTSP STREAMING        -->
-    <!-- ========================================================= -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
-
-    <!-- 🟢 नए जोड़े गए कैमरा और स्टोरेज परमिशंस (वीडियो एविडेंस सेव करने के लिए) -->
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
@@ -19,7 +14,7 @@
         android:label="Family Care AI"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
-        android:usesCleartextTraffic="true"> <!-- Required for local RTSP / HTTP streaming without SSL restriction -->
+        android:usesCleartextTraffic="true">
         
         <activity
             android:name=".MainActivity"
@@ -32,7 +27,7 @@
             <meta-data
               android:name="io.flutter.embedding.android.NormalTheme"
               android:resource="@style/NormalTheme"
-              />
+            />
               
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
@@ -40,6 +35,7 @@
             </intent-filter>
         </activity>
         
+        <!-- यह लाइन पक्का होनी चाहिए जो V2 embedding को एक्टिव करती है -->
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
