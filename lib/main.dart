@@ -1,6 +1,38 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 
+// Global Cameras Map so both Dashboard and Settings can access it without any scope error
+Map<String, Map<String, dynamic>> globalEnterpriseCameras = {
+  "Main Entrance Gate": {
+    "active": true,
+    "ip": "rtsp://192.168.1.101:554/live",
+    "status": "Secure",
+    "resolution": "4K Ultra HD",
+    "latency": "18ms",
+  },
+  "Living Room Hub": {
+    "active": true,
+    "ip": "rtsp://192.168.1.102:554/live",
+    "status": "Secure",
+    "resolution": "1080p FHD",
+    "latency": "24ms",
+  },
+  "Backyard Perimeter": {
+    "active": false,
+    "ip": "rtsp://192.168.1.103:554/live",
+    "status": "Standby",
+    "resolution": "1080p FHD",
+    "latency": "--",
+  },
+  "Kids Play Zone": {
+    "active": true,
+    "ip": "rtsp://192.168.1.104:554/live",
+    "status": "Secure",
+    "resolution": "2K Quad HD",
+    "latency": "21ms",
+  }
+};
+
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
   runApp(const FamilyCareVIPApp());
@@ -45,37 +77,6 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
   Timer? _aiSimulationTimer;
   String activeModelChoice = "YOLOv8 Edge Model (Local/Fast)";
 
-  static final Map<String, Map<String, dynamic>> enterpriseCameras = {
-    "Main Entrance Gate": {
-      "active": true,
-      "ip": "rtsp://192.168.1.101:554/live",
-      "status": "Secure",
-      "resolution": "4K Ultra HD",
-      "latency": "18ms",
-    },
-    "Living Room Hub": {
-      "active": true,
-      "ip": "rtsp://192.168.1.102:554/live",
-      "status": "Secure",
-      "resolution": "1080p FHD",
-      "latency": "24ms",
-    },
-    "Backyard Perimeter": {
-      "active": false,
-      "ip": "rtsp://192.168.1.103:554/live",
-      "status": "Standby",
-      "resolution": "1080p FHD",
-      "latency": "--",
-    },
-    "Kids Play Zone": {
-      "active": true,
-      "ip": "rtsp://192.168.1.104:554/live",
-      "status": "Secure",
-      "resolution": "2K Quad HD",
-      "latency": "21ms",
-    }
-  };
-
   var enterpriseLogs = [
     {
       "time": "12:15 PM",
@@ -113,7 +114,7 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
     _aiSimulationTimer = Timer.periodic(const Duration(seconds: 10), (timer) {
       if (!mounted || !isSystemArmed) return;
 
-      bool activeCheck = enterpriseCameras.values.any((c) => c["active"] == true);
+      bool activeCheck = globalEnterpriseCameras.values.any((c) => c["active"] == true);
       if (activeCheck && walletBalance > 5.0) {
         setState(() {
           walletBalance -= 0.75;
@@ -133,9 +134,9 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
 
   void toggleCameraState(String camKey) {
     setState(() {
-      bool current = enterpriseCameras[camKey]!["active"];
-      enterpriseCameras[camKey]!["active"] = !current;
-      enterpriseCameras[camKey]!["status"] = !current ? "Secure" : "Standby";
+      bool current = globalEnterpriseCameras[camKey]!["active"];
+      globalEnterpriseCameras[camKey]!["active"] = !current;
+      globalEnterpriseCameras[camKey]!["status"] = !current ? "Secure" : "Standby";
     });
   }
 
@@ -272,7 +273,7 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
                 ),
                 Text(
-                  '${enterpriseCameras.length} Nodes Active',
+                  '${globalEnterpriseCameras.length} Nodes Active',
                   style: const TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w600),
                 ),
               ],
@@ -281,10 +282,10 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
             ListView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              itemCount: enterpriseCameras.length,
+              itemCount: globalEnterpriseCameras.length,
               itemBuilder: (context, index) {
-                String camName = enterpriseCameras.keys.elementAt(index);
-                var data = enterpriseCameras[camName]!;
+                String camName = globalEnterpriseCameras.keys.elementAt(index);
+                var data = globalEnterpriseCameras[camName]!;
                 bool isActive = data["active"];
 
                 return Container(
@@ -406,7 +407,7 @@ class _EnterpriseSettingsScreenState extends State<EnterpriseSettingsScreen> {
     String ip = _nodeIpController.text.trim();
 
     if (name.isNotEmpty && ip.isNotEmpty) {
-      EnterpriseDashboardScreen.enterpriseCameras[name] = {
+      globalEnterpriseCameras[name] = {
         "active": true,
         "ip": ip,
         "status": "Secure",
