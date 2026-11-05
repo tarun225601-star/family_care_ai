@@ -17,11 +17,11 @@ class FamilyCareVIPApp extends StatelessWidget {
       theme: ThemeData(
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF1E1B4B), // Deep Indigo VIP Theme
+          seedColor: const Color(0xFF1E1B4B),
           brightness: Brightness.light,
         ),
         scaffoldBackgroundColor: const Color(0xFFF8FAFC),
-        cardTheme: CardThemeData(
+        cardTheme: CardTheme(
           elevation: 4,
           shadowColor: Colors.black.withOpacity(0.08),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -32,9 +32,6 @@ class FamilyCareVIPApp extends StatelessWidget {
   }
 }
 
-// =========================================================================
-// ENTERPRISE DASHBOARD SCREEN (Core Hub, Cameras, Wallet & AI Simulation)
-// =========================================================================
 class EnterpriseDashboardScreen extends StatefulWidget {
   const EnterpriseDashboardScreen({super.key});
 
@@ -43,12 +40,11 @@ class EnterpriseDashboardScreen extends StatefulWidget {
 }
 
 class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
-  double walletBalance = 2450.00; // Enterprise Prepaid Pay-As-You-Go Wallet in INR
+  double walletBalance = 2450.00;
   bool isSystemArmed = true;
   Timer? _aiSimulationTimer;
   String activeModelChoice = "YOLOv8 Edge Model (Local/Fast)";
 
-  // Global Hub Cameras Database
   static final Map<String, Map<String, dynamic>> enterpriseCameras = {
     "Main Entrance Gate": {
       "active": true,
@@ -80,8 +76,7 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
     }
   };
 
-  // Real-time Event Feed Logs
-  final List> enterpriseLogs = [
+  var enterpriseLogs = [
     {
       "time": "12:15 PM",
       "camera": "Main Entrance Gate",
@@ -114,7 +109,6 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
     super.dispose();
   }
 
-  // Autonomous SaaS Micro-billing & AI Event Simulation Loop
   void _initAutonomousEngine() {
     _aiSimulationTimer = Timer.periodic(const Duration(seconds: 10), (timer) {
       if (!mounted || !isSystemArmed) return;
@@ -122,7 +116,7 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
       bool activeCheck = enterpriseCameras.values.any((c) => c["active"] == true);
       if (activeCheck && walletBalance > 5.0) {
         setState(() {
-          walletBalance -= 0.75; // Per-inference cloud/edge micro-deduction
+          walletBalance -= 0.75;
           enterpriseLogs.insert(0, {
             "time": "Just now",
             "camera": "Main Entrance Gate",
@@ -163,7 +157,7 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
     return Scaffold(
       appBar: AppBar(
         elevation: 0,
-        backgroundColor: const Color(0xFF1E1B4B), // Rich Indigo VIP Header
+        backgroundColor: const Color(0xFF1E1B4B),
         title: const Row(
           children: [
             Icon(Icons.shield_rounded, color: Colors.amberAccent, size: 28),
@@ -185,7 +179,6 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
                 isSystemArmed = !isSystemArmed;
               });
             },
-            tooltip: isSystemArmed ? 'System Armed' : 'System Disarmed',
           ),
           IconButton(
             icon: const Icon(Icons.settings_suggest_rounded, color: Colors.white),
@@ -196,7 +189,6 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
               );
               setState(() {});
             },
-            tooltip: 'Settings & Config',
           ),
         ],
       ),
@@ -205,7 +197,6 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // VIP Financial & Status Wallet Card
             Container(
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
@@ -273,8 +264,6 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
               ),
             ),
             const SizedBox(height: 24),
-
-            // Section Header: Connected Hub Cameras
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -289,8 +278,6 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
               ],
             ),
             const SizedBox(height: 12),
-
-            // Cameras List View Container
             ListView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
@@ -342,15 +329,11 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
               },
             ),
             const SizedBox(height: 20),
-
-            // Section Header: Live Feed Logs
             const Text(
               'Live Enterprise Event Intelligence',
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
             ),
             const SizedBox(height: 12),
-
-            // Logs Feed Builder
             ListView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
@@ -398,9 +381,6 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
   }
 }
 
-// =========================================================================
-// ENTERPRISE SETTINGS SCREEN (API Keys, Dual AI Models & RTSP Node Integration)
-// =========================================================================
 class EnterpriseSettingsScreen extends StatefulWidget {
   const EnterpriseSettingsScreen({super.key});
 
