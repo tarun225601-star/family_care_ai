@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 
-// Global Configurations without any angle brackets to prevent parsing errors
-var globalEnterpriseCameras = {
+// Global Configurations (Without generic angle brackets to prevent markdown issues)
+Map globalEnterpriseCameras = {
   "Main Entrance Gate": {
     "active": true,
     "ip": "rtsp://192.168.1.101:554/live",
@@ -17,22 +17,32 @@ var globalEnterpriseCameras = {
     "resolution": "1080p FHD",
     "latency": "24ms",
   },
+  "Server Room": {
+    "active": true,
+    "ip": "rtsp://192.168.1.103:554/live",
+    "status": "Secure",
+    "resolution": "1080p FHD",
+    "latency": "12ms",
+  },
 };
 
-var globalCustomAIPrompt = "Detect intruders, smoke, children near stairs, and unauthorized delivery agents.";
-var globalGeminiApiKey = "AIzaSy_Demo_Gemini_Vision_Key_998877";
+String globalCustomAIPrompt = "Detect intruders, smoke, children near stairs, and unauthorized delivery agents.";
+String globalGeminiApiKey = "AIzaSy_Demo_Gemini_Vision_Key_998877";
 
-var globalEnterpriseLogs = [
+// Global Logs containing evidence file paths saved in phone memory
+List globalEnterpriseLogs = [
   {
     "time": "12:15 PM",
     "camera": "Main Entrance Gate",
-    "event": "VIP Visitor identified based on Gemini Vision AI rules.",
-    "level": "Low"
+    "event": "⚠️ Intruder Detected based on Gemini Prompt rules.",
+    "videoPath": "/storage/emulated/0/Download/evidence_101.mp4",
+    "level": "High"
   },
   {
     "time": "11:40 AM",
     "camera": "Living Room Hub",
-    "event": "Motion recognized near secure perimeter. Clip encrypted.",
+    "event": "Motion recognized near secure perimeter.",
+    "videoPath": "/storage/emulated/0/Download/evidence_102.mp4",
     "level": "Medium"
   }
 ];
@@ -56,10 +66,10 @@ class FamilyCareVIPApp extends StatelessWidget {
           seedColor: const Color(0xFF1E1B4B),
           brightness: Brightness.light,
         ),
-        scaffoldBackgroundColor: const Color(0xFFF8FAFC),
+        scaffoldBackgroundColor: const Color(0xFF0F172A),
         cardTheme: CardTheme(
           elevation: 4,
-          shadowColor: Colors.black.withOpacity(0.08),
+          shadowColor: Colors.black.withOpacity(0.3),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         ),
       ),
@@ -78,8 +88,8 @@ class EnterpriseDashboardScreen extends StatefulWidget {
 class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
   double walletBalance = 2450.00;
   bool isSystemArmed = true;
+  bool isRecordingEvidence = false;
   Timer? _aiSimulationTimer;
-  String activeModelChoice = "Gemini 2.5 Flash Vision (Cloud)";
 
   @override
   void initState() {
@@ -93,33 +103,54 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
     super.dispose();
   }
 
+  // Engine that checks prompt & triggers auto video recording on match
   void _initAutonomousEngine() {
-    _aiSimulationTimer = Timer.periodic(const Duration(seconds: 10), (timer) {
-      if (!mounted || !isSystemArmed) return;
+    _aiSimulationTimer = Timer.periodic(const Duration(seconds: 12), (timer) {
+      if (!mounted || !isSystemArmed || isRecordingEvidence) return;
 
-      bool activeCheck = globalEnterpriseCameras.values.any((c) => c["active"] == true);
+      bool activeCheck = globalEnterpriseCameras.values.any((c) => (c as Map)["active"] == true);
       if (activeCheck && walletBalance > 5.0) {
-        setState(() {
-          walletBalance -= 0.75;
-          globalEnterpriseLogs.insert(0, {
-            "time": "Just now",
-            "camera": "Mobile Live Sensor",
-            "event": "⚡ Gemini AI Evaluated Prompt: All scanned frames secure.",
-            "level": "Normal"
-          });
-          if (globalEnterpriseLogs.length > 20) {
-            globalEnterpriseLogs.removeLast();
-          }
-        });
+        _triggerAutoVideoRecording();
       }
     });
   }
 
-  void toggleCameraState(String camKey) {
+  // Simulates automatic 5-second video capture and saves to phone storage path
+  void _triggerAutoVideoRecording() {
     setState(() {
-      bool current = globalEnterpriseCameras[camKey]!["active"] as bool;
-      globalEnterpriseCameras[camKey]!["active"] = !current;
-      globalEnterpriseCameras[camKey]!["status"] = !current ? "Secure" : "Standby";
+      isRecordingEvidence = true;
+    });
+
+    // Simulated 5-second clip recording time
+    Future.delayed(const Duration(seconds: 5), () {
+      if (!mounted) return;
+      
+      String timeStamp = DateTime.now().millisecondsSinceEpoch.toString();
+      String localSavedPath = "/storage/emulated/0/DCIM/FamilyCare_Evidence_$timeStamp.mp4";
+
+      setState(() {
+        isRecordingEvidence = false;
+        walletBalance -= 0.75;
+        globalEnterpriseLogs.insert(0, {
+          "time": "Just now",
+          "camera": "Live Node 01",
+          "event": "🚨 PROMPT ALERT MATCHED: Video recorded & saved to storage.",
+          "videoPath": localSavedPath,
+          "level": "High"
+        });
+
+        if (globalEnterpriseLogs.length > 20) {
+          globalEnterpriseLogs.removeLast();
+        }
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('🎥 5-Sec Evidence Video Saved: $localSavedPath'),
+          backgroundColor: Colors.redAccent,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
     });
   }
 
@@ -130,7 +161,7 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('🎉 ₹500 successfully added to Enterprise Wallet!'),
-        backgroundColor: Color(0xFF0F172A),
+        backgroundColor: Color(0xFF1E1B4B),
         behavior: SnackBarBehavior.floating,
       ),
     );
@@ -144,25 +175,15 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
         backgroundColor: const Color(0xFF1E1B4B),
         title: const Row(
           children: [
-            Icon(Icons.shield_rounded, color: Colors.amberAccent, size: 28),
+            Icon(Icons.shield_rounded, color: Colors.amberAccent, size: 26),
             SizedBox(width: 10),
             Text(
-              'Family Care Enterprise',
-              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+              'Command Center Dashboard',
+              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
             ),
           ],
         ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.analytics_rounded, color: Colors.amberAccent),
-            tooltip: 'View Event Intelligence Logs',
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const EnterpriseLogsScreen()),
-              );
-            },
-          ),
           IconButton(
             icon: Icon(
               isSystemArmed ? Icons.lock_rounded : Icons.lock_open_rounded,
@@ -175,7 +196,7 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
             },
           ),
           IconButton(
-            icon: const Icon(Icons.settings_suggest_rounded, color: Colors.white),
+            icon: const Icon(Icons.settings_rounded, color: Colors.white),
             onPressed: () async {
               await Navigator.push(
                 context,
@@ -187,52 +208,45 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
         ],
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(14.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Status Bar & Recording Indicator
             Container(
               decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF1E1B4B), Color(0xFF312E81)],
+                gradient: LinearGradient(
+                  colors: isRecordingEvidence
+                      ? [const Color(0xFF881337), const Color(0xFF9F1239)]
+                      : [const Color(0xFF1E1B4B), const Color(0xFF312E81)],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(16),
               ),
-              padding: const EdgeInsets.all(22.0),
+              padding: const EdgeInsets.all(16.0),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'ENTERPRISE WALLET BALANCE',
-                        style: TextStyle(fontSize: 11, color: Colors.white70, fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        '₹${walletBalance.toStringAsFixed(2)}',
-                        style: const TextStyle(fontSize: 30, fontWeight: FontWeight.bold, color: Colors.white),
-                      ),
-                      const SizedBox(height: 8),
                       Row(
                         children: [
-                          Container(
-                            width: 8,
-                            height: 8,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: isSystemArmed ? Colors.greenAccent : Colors.redAccent,
+                          Text(
+                            isRecordingEvidence ? 'REC • SAVING VIDEO TO STORAGE' : 'AI WALLET BALANCE',
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: isRecordingEvidence ? Colors.redAccent : Colors.white70,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
-                          const SizedBox(width: 6),
-                          Text(
-                            isSystemArmed ? 'AI Guard Active (Gemini Connected)' : 'System Disarmed',
-                            style: const TextStyle(fontSize: 11, color: Colors.white60, fontWeight: FontWeight.w500),
-                          ),
                         ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '₹${walletBalance.toStringAsFixed(2)}',
+                        style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white),
                       ),
                     ],
                   ),
@@ -240,146 +254,101 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.amberAccent,
                       foregroundColor: const Color(0xFF1E1B4B),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                     ),
                     onPressed: handleWalletTopUp,
-                    child: const Text('Top-Up ₹500', style: TextStyle(fontWeight: FontWeight.bold)),
+                    child: const Text('Top-Up ₹500', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
                   ),
                 ],
               ),
             ),
             const SizedBox(height: 20),
-            Container(
-              decoration: BoxDecoration(
-                color: const Color(0xFFEEF2FF),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: const Color(0xFF4F46E5), width: 1.5),
-              ),
-              child: ListTile(
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                leading: const CircleAvatar(
-                  backgroundColor: Color(0xFF4F46E5),
-                  child: Icon(Icons.camera_alt_rounded, color: Colors.white),
+
+            // Live Cameras Split Grid View
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Live Camera Feeds (Multi-View)',
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white),
                 ),
-                title: const Text(
-                  'Live Mobile Camera & Gemini Vision',
-                  style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1E1B4B)),
+                Text(
+                  '${globalEnterpriseCameras.length} Active Nodes',
+                  style: const TextStyle(fontSize: 11, color: Colors.amberAccent),
                 ),
-                subtitle: Text(
-                  'Active Prompt: "$globalCustomAIPrompt"',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontSize: 11, color: Colors.grey),
-                ),
-                trailing: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF4F46E5),
-                    foregroundColor: Colors.white,
-                  ),
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const MobileCamDetectionScreen()),
-                    );
-                  },
-                  child: const Text('Open Cam'),
-                ),
-              ),
-            ),
-            const SizedBox(height: 24),
-            const Text(
-              'Connected Hardware Hubs',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
+              ],
             ),
             const SizedBox(height: 10),
-            ListView.builder(
+
+            GridView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                crossAxisSpacing: 10,
+                mainAxisSpacing: 10,
+                childAspectRatio: 16 / 11,
+              ),
               itemCount: globalEnterpriseCameras.length,
               itemBuilder: (context, index) {
                 String camName = globalEnterpriseCameras.keys.elementAt(index);
-                var data = globalEnterpriseCameras[camName]!;
+                Map data = globalEnterpriseCameras[camName] as Map;
                 bool isActive = data["active"] as bool;
 
                 return Container(
-                  margin: const EdgeInsets.only(bottom: 10),
                   decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: Colors.grey.shade200),
-                  ),
-                  child: ListTile(
-                    leading: Icon(Icons.videocam_rounded, color: isActive ? const Color(0xFF4F46E5) : Colors.grey),
-                    title: Text(camName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                    subtitle: Text('IP: ${data["ip"]} • Status: ${data["status"]}', style: const TextStyle(fontSize: 11)),
-                    trailing: Switch.adaptive(
-                      value: isActive,
-                      activeColor: const Color(0xFF4F46E5),
-                      onChanged: (val) => toggleCameraState(camName),
+                    color: const Color(0xFF1E293B),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: isRecordingEvidence
+                          ? Colors.redAccent
+                          : (isActive ? Colors.indigo.shade400 : Colors.red.shade400),
+                      width: 1.5,
                     ),
                   ),
-                );
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class EnterpriseLogsScreen extends StatelessWidget {
-  const EnterpriseLogsScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Event Intelligence Logs', style: TextStyle(color: Colors.white, fontSize: 17)),
-        backgroundColor: const Color(0xFF1E1B4B),
-        iconTheme: const IconThemeData(color: Colors.white),
-      ),
-      body: globalEnterpriseLogs.isEmpty
-          ? const Center(child: Text('No intelligence logs recorded yet.'))
-          : ListView.builder(
-              padding: const EdgeInsets.all(16.0),
-              itemCount: globalEnterpriseLogs.length,
-              itemBuilder: (context, index) {
-                var log = globalEnterpriseLogs[index];
-                return Container(
-                  margin: const EdgeInsets.only(bottom: 12),
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: Colors.indigo.shade50),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.03),
-                        blurRadius: 6,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  child: Stack(
                     children: [
-                      const Icon(Icons.bolt_rounded, color: Color(0xFF4F46E5), size: 22),
-                      const SizedBox(width: 14),
-                      Expanded(
+                      Center(
                         child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Text(
-                              log["event"]!,
-                              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13.5, color: Color(0xFF1E293B)),
+                            Icon(
+                              Icons.videocam_rounded,
+                              size: 32,
+                              color: isRecordingEvidence
+                                  ? Colors.redAccent
+                                  : (isActive ? Colors.greenAccent : Colors.grey),
                             ),
                             const SizedBox(height: 6),
                             Text(
-                              'Node: ${log["camera"]}  •  Time: ${log["time"]}',
-                              style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
+                              isRecordingEvidence ? "REC CLIP..." : (isActive ? "LIVE FEED" : "STANDBY"),
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: isRecordingEvidence
+                                    ? Colors.redAccent
+                                    : (isActive ? Colors.greenAccent : Colors.grey),
+                              ),
                             ),
                           ],
+                        ),
+                      ),
+                      Positioned(
+                        top: 8,
+                        left: 8,
+                        right: 8,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withOpacity(0.6),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            camName,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                          ),
                         ),
                       ),
                     ],
@@ -387,90 +356,87 @@ class EnterpriseLogsScreen extends StatelessWidget {
                 );
               },
             ),
-    );
-  }
-}
+            const SizedBox(height: 24),
 
-class MobileCamDetectionScreen extends StatefulWidget {
-  const MobileCamDetectionScreen({super.key});
-
-  @override
-  State<MobileCamDetectionScreen> createState() => _MobileCamDetectionScreenState();
-}
-
-class _MobileCamDetectionScreenState extends State<MobileCamDetectionScreen> {
-  String detectedObject = "Analyzing stream with Gemini Vision API...";
-
-  @override
-  void initState() {
-    super.initState();
-    Timer.periodic(const Duration(seconds: 3), (timer) {
-      if (!mounted) return;
-      setState(() {
-        detectedObject = "⚡ Gemini AI Verified: Normal activities, target prompt satisfied.";
-      });
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black,
-      appBar: AppBar(
-        title: const Text('Gemini Vision AI Live Stream', style: TextStyle(color: Colors.white, fontSize: 16)),
-        backgroundColor: Colors.black,
-        iconTheme: const IconThemeData(color: Colors.white),
-      ),
-      body: Stack(
-        children: [
-          Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.camera_front_rounded, size: 80, color: Colors.white54),
-                const SizedBox(height: 20),
-                const Text(
-                  '📱 Mobile Camera Connected to Gemini',
-                  style: TextStyle(color: Colors.white70, fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 10),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 30.0),
-                  child: Text(
-                    'Active Prompt: "$globalCustomAIPrompt"',
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(color: Colors.amberAccent, fontSize: 12),
-                  ),
-                ),
-              ],
+            // Live Event Intelligence Logs & Evidence Videos Section
+            const Text(
+              'Real-Time Evidence Logs & Saved Video Clips',
+              style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white),
             ),
-          ),
-          Positioned(
-            bottom: 30,
-            left: 20,
-            right: 20,
-            child: Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.8),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.greenAccent, width: 1.5),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.bolt_rounded, color: Colors.greenAccent),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      detectedObject,
-                      style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500),
-                    ),
+            const SizedBox(height: 10),
+
+            ListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: globalEnterpriseLogs.length,
+              itemBuilder: (context, index) {
+                Map log = globalEnterpriseLogs[index] as Map;
+                String videoPath = log["videoPath"] != null ? log["videoPath"].toString() : "No Video";
+
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 10),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1E293B),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.indigo.shade900),
                   ),
-                ],
-              ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Icon(Icons.videocam_sharp, color: Colors.amberAccent, size: 20),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  log["event"].toString(),
+                                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12.5, color: Colors.white),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Node: ${log["camera"]}  •  Time: ${log["time"]}',
+                                  style: const TextStyle(fontSize: 10, color: Colors.white54),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (log["videoPath"] != null) ...[
+                        const SizedBox(height: 8),
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.black38,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.folder_zip_rounded, color: Colors.greenAccent, size: 16),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  'Saved MP4: $videoPath',
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(fontSize: 10, color: Colors.greenAccent),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ]
+                    ],
+                  ),
+                );
+              },
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -490,14 +456,6 @@ class _EnterpriseSettingsScreenState extends State<EnterpriseSettingsScreen> {
   final TextEditingController _promptController = TextEditingController(text: globalCustomAIPrompt);
   bool _hideGeminiKey = true;
 
-  static String selectedAIModel = "Gemini 2.5 Flash Vision (Cloud)";
-  
-  var availableAIModels = [
-    "Gemini 2.5 Flash Vision (Cloud)",
-    "Gemini 1.5 Pro Multimodal",
-    "YOLOv8 Edge Model (Local/Fast)"
-  ];
-
   void _saveSystemConfiguration() {
     String name = _nodeNameController.text.trim();
     String ip = _nodeIpController.text.trim();
@@ -516,7 +474,7 @@ class _EnterpriseSettingsScreenState extends State<EnterpriseSettingsScreen> {
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('Gemini API Key, Prompt & Node Configuration synchronized!'),
+        content: Text('Settings & Prompts updated!'),
         backgroundColor: Color(0xFF1E1B4B),
         behavior: SnackBarBehavior.floating,
       ),
@@ -528,123 +486,93 @@ class _EnterpriseSettingsScreenState extends State<EnterpriseSettingsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Enterprise Configuration', style: TextStyle(color: Colors.white, fontSize: 17)),
+        title: const Text('System Configuration', style: TextStyle(color: Colors.white, fontSize: 16)),
         backgroundColor: const Color(0xFF1E1B4B),
         iconTheme: const IconThemeData(color: Colors.white),
         elevation: 0,
       ),
       body: ListView(
-        padding: const EdgeInsets.all(20.0),
+        padding: const EdgeInsets.all(16.0),
         children: [
           const Text(
-            'Google Gemini API Key (Vision Analysis):',
-            style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
+            'Google Gemini API Key:',
+            style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
           TextField(
             controller: _geminiKeyController,
             obscureText: _hideGeminiKey,
+            style: const TextStyle(color: Colors.white),
             decoration: InputDecoration(
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-              prefixIcon: const Icon(Icons.key_rounded, color: Color(0xFF4F46E5)),
+              prefixIcon: const Icon(Icons.key_rounded, color: Colors.amberAccent),
               suffixIcon: IconButton(
-                icon: Icon(_hideGeminiKey ? Icons.visibility_rounded : Icons.visibility_off_rounded),
+                icon: Icon(_hideGeminiKey ? Icons.visibility_rounded : Icons.visibility_off_rounded, color: Colors.white60),
                 onPressed: () => setState(() => _hideGeminiKey = !_hideGeminiKey),
               ),
-              hintText: 'Enter Gemini API Key (AIzaSy...)',
               filled: true,
-              fillColor: Colors.white,
+              fillColor: const Color(0xFF1E293B),
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 20),
           const Text(
-            'Custom AI Detection Prompt / Instructions:',
-            style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
+            'Custom AI Detection Prompt:',
+            style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
           TextField(
             controller: _promptController,
             maxLines: 3,
+            style: const TextStyle(color: Colors.white),
             decoration: InputDecoration(
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-              hintText: 'Enter what Gemini AI should look for...',
               filled: true,
-              fillColor: Colors.white,
+              fillColor: const Color(0xFF1E293B),
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 20),
+          const Divider(color: Colors.white24),
+          const SizedBox(height: 10),
           const Text(
-            'Select Active Neural Inference Engine:',
-            style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
+            'Add New RTSP Camera Node:',
+            style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white),
           ),
-          const SizedBox(height: 8),
-          DropdownButtonFormField(
-            value: selectedAIModel,
-            decoration: InputDecoration(
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-              prefixIcon: const Icon(Icons.memory_rounded, color: Color(0xFF4F46E5)),
-              filled: true,
-              fillColor: Colors.white,
-            ),
-            items: availableAIModels.map((model) {
-              return DropdownMenuItem(
-                value: model,
-                child: Text(model, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
-              );
-            }).toList(),
-            onChanged: (val) {
-              if (val != null) {
-                setState(() {
-                  selectedAIModel = val;
-                });
-              }
-            },
-          ),
-          const SizedBox(height: 24),
-          const Divider(thickness: 1.5),
-          const SizedBox(height: 16),
-          const Text(
-            'Provision New RTSP Hardware Node:',
-            style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
-          ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
           TextField(
             controller: _nodeNameController,
+            style: const TextStyle(color: Colors.white),
             decoration: InputDecoration(
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-              hintText: 'Node Location (e.g. Server Room)',
-              prefixIcon: const Icon(Icons.label_rounded, color: Color(0xFF4F46E5)),
+              hintText: 'Camera Location (e.g. Backdoor)',
+              hintStyle: const TextStyle(color: Colors.white54),
               filled: true,
-              fillColor: Colors.white,
+              fillColor: const Color(0xFF1E293B),
             ),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 10),
           TextField(
             controller: _nodeIpController,
+            style: const TextStyle(color: Colors.white),
             decoration: InputDecoration(
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-              hintText: 'RTSP Address (rtsp://192.168.X.X:554/live)',
-              prefixIcon: const Icon(Icons.router_rounded, color: Color(0xFF4F46E5)),
+              hintText: 'RTSP URL (rtsp://192.168.X.X:554/live)',
+              hintStyle: const TextStyle(color: Colors.white54),
               filled: true,
-              fillColor: Colors.white,
+              fillColor: const Color(0xFF1E293B),
             ),
           ),
-          const SizedBox(height: 40),
+          const SizedBox(height: 30),
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF1E1B4B),
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 16),
+                backgroundColor: Colors.amberAccent,
+                foregroundColor: const Color(0xFF1E1B4B),
+                padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                elevation: 2,
               ),
               onPressed: _saveSystemConfiguration,
-              child: const Text(
-                'Save & Deploy Node Configuration',
-                style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
-              ),
+              child: const Text('Save & Apply Changes', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
             ),
           ),
         ],
