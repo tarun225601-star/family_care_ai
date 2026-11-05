@@ -1,6 +1,6 @@
 name: family_care_ai
 description: A high-scale plug-and-play Vision AI SaaS mobile application for home safety.
-publish_to: 'none' # Prevent accidental publishing to pub.dev
+publish_to: 'none'
 
 version: 1.0.0+1
 
@@ -10,10 +10,11 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  # UI icons & styling components
   cupertino_icons: ^1.0.6
-  # HTTP package for connecting with backend & AI APIs
   http: ^1.2.0
+  camera: ^0.11.0+2
+  path_provider: ^2.1.2
+  path: ^1.9.0
 
 dev_dependencies:
   flutter_test:
@@ -23,6 +24,5 @@ dev_dependencies:
 flutter:
   uses-material-design: true
 
-  # Assets configuration if you want to add custom icons or logos later
   # assets:
   #   - assets/images/
