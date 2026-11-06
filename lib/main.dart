@@ -27,6 +27,10 @@ class FamilyCareVIPApp extends StatelessWidget {
       theme: ThemeData(
         useMaterial3: true,
         scaffoldBackgroundColor: const Color(0xFF0F172A),
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color(0xFF1E1B4B),
+          brightness: Brightness.dark,
+        ),
       ),
       home: const EnterpriseDashboardScreen(),
     );
@@ -94,6 +98,7 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
         const SnackBar(
           content: Text('⚠️ Insufficient Wallet Balance for AI Vision Analysis!'),
           backgroundColor: Colors.orange,
+          behavior: SnackBarBehavior.floating,
         ),
       );
       return;
@@ -208,6 +213,17 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
           ],
         ),
         actions: [
+          // AI Natural Language Video Search Chat Button
+          IconButton(
+            icon: const Icon(Icons.chat_bubble_outline_rounded, color: Colors.cyanAccent),
+            tooltip: 'AI Video Intelligence Chat',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const AiVideoChatSearchScreen()),
+              );
+            },
+          ),
           IconButton(
             icon: Icon(
               isSystemArmed ? Icons.lock_rounded : Icons.lock_open_rounded,
@@ -464,6 +480,155 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
   }
 }
 
+// ==========================================
+// AI NATURAL LANGUAGE VIDEO SEARCH CHAT
+// ==========================================
+class AiVideoChatSearchScreen extends StatefulWidget {
+  const AiVideoChatSearchScreen({super.key});
+
+  @override
+  State<AiVideoChatSearchScreen> createState() => _AiVideoChatSearchScreenState();
+}
+
+class _AiVideoChatSearchScreenState extends State<AiVideoChatSearchScreen> {
+  final TextEditingController _queryController = TextEditingController();
+  final List> _chatMessages = [];
+  bool _isSearching = false;
+
+  Future<void> _performAiVideoSearch(String query) async {
+    setState(() {
+      _chatMessages.add({'sender': 'user', 'message': query});
+      _isSearching = true;
+    });
+
+    try {
+      final url = Uri.parse(
+          'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=$globalGeminiApiKey');
+
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          "contents": [
+            {
+              "parts": [
+                {
+                  "text": "You are the AI Video Search Engine for NVR/DVR security footage. Based on the user query: '$query', search through the connected camera logs and return a precise event summary, timestamp, and relevant security footage status."
+                }
+              ]
+            }
+          ]
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        final responseData = jsonDecode(response.body);
+        String aiReply = responseData['candidates']?[0]['content']?['parts']?[0]['text'] ?? "No matching records found for this time.";
+
+        setState(() {
+          _chatMessages.add({'sender': 'ai', 'message': aiReply});
+          _isSearching = false;
+        });
+      } else {
+        throw Exception("API Error: ${response.statusCode}");
+      }
+    } catch (e) {
+      setState(() {
+        _chatMessages.add({'sender': 'ai', 'message': '❌ Error fetching footage: Please check your Gemini API key.'});
+        _isSearching = false;
+      });
+    }
+    _queryController.clear();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('AI Video Intelligence Chat', style: TextStyle(color: Colors.white, fontSize: 16)),
+        backgroundColor: const Color(0xFF1E1B4B),
+        iconTheme: const IconThemeData(color: Colors.white),
+      ),
+      body: Column(
+        children: [
+          Expanded(
+            child: _chatMessages.isEmpty
+                ? const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(24.0),
+                      child: Text(
+                        '💬 Ask anything about past footage!\n\ne.g., "Show me who visited yesterday at 4 PM" or "Find when the delivery person arrived at the main gate."',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: Colors.white54, fontSize: 13),
+                      ),
+                    ),
+                  )
+                : ListView.builder(
+                    padding: const EdgeInsets.all(12),
+                    itemCount: _chatMessages.length,
+                    itemBuilder: (context, index) {
+                      final msg = _chatMessages[index];
+                      final isUser = msg['sender'] == 'user';
+                      return Align(
+                        alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
+                        child: Container(
+                          margin: const EdgeInsets.symmetric(vertical: 4),
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: isUser ? const Color(0xFF3B82F6) : const Color(0xFF1E293B),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            msg['message'] ?? '',
+                            style: const TextStyle(color: Colors.white, fontSize: 12.5),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+          ),
+          if (_isSearching)
+            const Padding(
+              padding: EdgeInsets.all(8.0),
+              child: LinearProgressIndicator(color: Colors.amberAccent),
+            ),
+          Container(
+            padding: const EdgeInsets.all(8),
+            color: const Color(0xFF1E1B4B),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _queryController,
+                    style: const TextStyle(color: Colors.white, fontSize: 12.5),
+                    decoration: const InputDecoration(
+                      hintText: 'Ask about past events (e.g., 4 PM footage)...',
+                      hintStyle: TextStyle(color: Colors.white54, fontSize: 12),
+                      border: InputBorder.none,
+                      contentPadding: EdgeInsets.symmetric(horizontal: 10),
+                    ),
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.send_rounded, color: Colors.amberAccent),
+                  onPressed: () {
+                    if (_queryController.text.trim().isNotEmpty) {
+                      _performAiVideoSearch(_queryController.text.trim());
+                    }
+                  },
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ==========================================
+// SETTINGS SCREEN
+// ==========================================
 class EnterpriseSettingsScreen extends StatefulWidget {
   const EnterpriseSettingsScreen({super.key});
 
