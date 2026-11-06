@@ -88,71 +88,47 @@ class EnterpriseDashboardScreen extends StatefulWidget {
 class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
   double walletBalance = 2450.00;
   bool isSystemArmed = true;
-  bool isRecordingEvidence = false;
-  Timer? _aiSimulationTimer;
 
   @override
   void initState() {
     super.initState();
-    _initAutonomousEngine();
+    // फालतू ऑटोमैटिक टाइमर यहाँ से हमेशा के लिए हटा दिया गया है
   }
 
   @override
   void dispose() {
-    _aiSimulationTimer?.cancel();
     super.dispose();
   }
 
-  // Engine that checks prompt & triggers auto video recording on match
-  void _initAutonomousEngine() {
-    _aiSimulationTimer = Timer.periodic(const Duration(seconds: 12), (timer) {
-      if (!mounted || !isSystemArmed || isRecordingEvidence) return;
+  // असली इवेंट या मैन्युअल थ्रेट डिटेक्ट होने पर ही यह चलेगा
+  void recordRealEvidence(String cameraName, String threatDescription) {
+    String timeStamp = DateTime.now().millisecondsSinceEpoch.toString();
+    String localSavedPath = "/storage/emulated/0/DCIM/FamilyCare_Evidence_$timeStamp.mp4";
 
-      bool activeCheck = globalEnterpriseCameras.values.any((c) => (c as Map)["active"] == true);
-      if (activeCheck && walletBalance > 5.0) {
-        _triggerAutoVideoRecording();
-      }
-    });
-  }
-
-  // Simulates automatic 5-second video capture and saves to phone storage path
-  void _triggerAutoVideoRecording() {
     setState(() {
-      isRecordingEvidence = true;
-    });
-
-    // Simulated 5-second clip recording time
-    Future.delayed(const Duration(seconds: 5), () {
-      if (!mounted) return;
-      
-      String timeStamp = DateTime.now().millisecondsSinceEpoch.toString();
-      String localSavedPath = "/storage/emulated/0/DCIM/FamilyCare_Evidence_$timeStamp.mp4";
-
-      setState(() {
-        isRecordingEvidence = false;
-        walletBalance -= 0.75;
-        globalEnterpriseLogs.insert(0, {
-          "time": "Just now",
-          "camera": "Live Node 01",
-          "event": "🚨 PROMPT ALERT MATCHED: Video recorded & saved to storage.",
-          "videoPath": localSavedPath,
-          "level": "High"
-        });
-
-        if (globalEnterpriseLogs.length > 20) {
-          globalEnterpriseLogs.removeLast();
-        }
+      walletBalance -= 0.75;
+      globalEnterpriseLogs.insert(0, {
+        "time": "Just now",
+        "camera": cameraName,
+        "event": threatDescription,
+        "videoPath": localSavedPath,
+        "level": "High"
       });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('🎥 5-Sec Evidence Video Saved: $localSavedPath'),
-          backgroundColor: Colors.redAccent,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+      if (globalEnterpriseLogs.length > 20) {
+        globalEnterpriseLogs.removeLast();
+      }
     });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('🚨 Real Evidence Saved: $localSavedPath'),
+        backgroundColor: Colors.redAccent,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
   }
+  
 
   void handleWalletTopUp() {
     setState(() {
