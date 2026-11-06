@@ -23,7 +23,7 @@ Map<String, Map<String, dynamic>> globalEnterpriseCameras = {
 };
 
 String globalCustomAIPrompt = "Scan this video frame carefully. Detect any security threat such as unauthorized intruders, forced entry, smoke/fire, or unattended children near stairs. Reply with a short JSON containing 'threat_detected' (boolean) and 'description' (string).";
-String globalGeminiApiKey = "YOUR_GEMINI_VISION_API_KEY_HERE";
+String globalGeminiApiKey = "AIzaSy_Demo_Gemini_Vision_Key_998877";
 
 List> globalEnterpriseLogs = [
   {
@@ -112,7 +112,7 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('⚠️ Insufficient Wallet Balance for AI Vision Analysis!'),
-          backgroundColor: Colors.orangeDark,
+          backgroundColor: Colors.orange,
         ),
       );
       return;
@@ -128,11 +128,9 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
         throw Exception("Camera stream not ready");
       }
 
-      // 1. Capture snapshot frame from VLC RTSP stream
       var imageBytes = await controller.takeSnapshot();
       String base64Image = base64Encode(imageBytes);
 
-      // 2. Call Google Gemini Vision API (REST Endpoint)
       final url = Uri.parse(
           'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=$globalGeminiApiKey');
 
@@ -160,7 +158,6 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
         final responseData = jsonDecode(response.body);
         String aiTextResponse = responseData['candidates']?[0]['content']?['parts']?[0]['text'] ?? "No Threat Detected";
 
-        // Record evidence if prompt matches or analysis completes
         String timeStamp = DateTime.now().millisecondsSinceEpoch.toString();
         String localSavedPath = "/storage/emulated/0/DCIM/FamilyCare_Evidence_$timeStamp.mp4";
 
@@ -186,7 +183,6 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
         throw Exception("Gemini API Error: ${response.statusCode}");
       }
     } catch (e) {
-      // Fallback for offline/demo testing
       String timeStamp = DateTime.now().millisecondsSinceEpoch.toString();
       String localSavedPath = "/storage/emulated/0/DCIM/FamilyCare_Evidence_$timeStamp.mp4";
 
@@ -275,7 +271,6 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Status Bar & Wallet Card
             Container(
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
@@ -332,8 +327,6 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
               ),
             ),
             const SizedBox(height: 18),
-
-            // Live Cameras Grid View
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -348,7 +341,6 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
               ],
             ),
             const SizedBox(height: 10),
-
             GridView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
@@ -421,14 +413,11 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
               },
             ),
             const SizedBox(height: 22),
-
-            // Live Intelligence Logs
             const Text(
               'Real-Time Intelligence & Evidence Logs',
               style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white),
             ),
             const SizedBox(height: 10),
-
             ListView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
