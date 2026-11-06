@@ -213,7 +213,6 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
           ],
         ),
         actions: [
-          // AI Natural Language Video Search Chat Button
           IconButton(
             icon: const Icon(Icons.chat_bubble_outline_rounded, color: Colors.cyanAccent),
             tooltip: 'AI Video Intelligence Chat',
@@ -480,9 +479,6 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
   }
 }
 
-// ==========================================
-// AI NATURAL LANGUAGE VIDEO SEARCH CHAT
-// ==========================================
 class AiVideoChatSearchScreen extends StatefulWidget {
   const AiVideoChatSearchScreen({super.key});
 
@@ -492,7 +488,7 @@ class AiVideoChatSearchScreen extends StatefulWidget {
 
 class _AiVideoChatSearchScreenState extends State<AiVideoChatSearchScreen> {
   final TextEditingController _queryController = TextEditingController();
-  final List> _chatMessages = [];
+  final List _chatMessages = [];
   bool _isSearching = false;
 
   Future<void> _performAiVideoSearch(String query) async {
@@ -626,9 +622,6 @@ class _AiVideoChatSearchScreenState extends State<AiVideoChatSearchScreen> {
   }
 }
 
-// ==========================================
-// SETTINGS SCREEN
-// ==========================================
 class EnterpriseSettingsScreen extends StatefulWidget {
   const EnterpriseSettingsScreen({super.key});
 
