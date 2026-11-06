@@ -4,36 +4,13 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:async';
 
-// Global Enterprise Configurations (Without raw angle brackets to prevent markdown errors)
-Map globalEnterpriseCameras = {
-  "Main Entrance Gate": {
-    "active": true,
-    "ip": "rtsp://admin:admin123@192.168.1.101:554/live",
-    "status": "Secure",
-    "resolution": "4K Ultra HD",
-    "latency": "18ms",
-  },
-  "Living Room Hub": {
-    "active": true,
-    "ip": "rtsp://admin:admin123@192.168.1.102:554/live",
-    "status": "Secure",
-    "resolution": "1080p FHD",
-    "latency": "24ms",
-  },
-};
+// 🔴 कोई फर्जी आईपी नहीं! ग्लोबल कैमरा लिस्ट शुरू में बिल्कुल खाली है।
+Map<String, Map<String, dynamic>> globalEnterpriseCameras = {};
 
 String globalCustomAIPrompt = "Scan this video frame carefully. Detect any security threat such as unauthorized intruders, forced entry, smoke/fire, or unattended children near stairs.";
 String globalGeminiApiKey = "AIzaSy_Demo_Gemini_Vision_Key_998877";
 
-List globalEnterpriseLogs = [
-  {
-    "time": "12:15 PM",
-    "camera": "Main Entrance Gate",
-    "event": "⚠️ Intruder Detected based on Gemini Prompt rules.",
-    "videoPath": "/storage/emulated/0/DCIM/FamilyCare_Evidence_101.mp4",
-    "level": "High"
-  }
-];
+List> globalEnterpriseLogs = [];
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -68,7 +45,7 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
   double walletBalance = 2450.00;
   bool isSystemArmed = true;
   bool isAnalyzingAI = false;
-  final Map _vlcControllers = {};
+  final Map<String, VlcPlayerController> _vlcControllers = {};
 
   @override
   void initState() {
@@ -77,21 +54,31 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
   }
 
   void _initializeRTSPStreams() {
+    for (var controller in _vlcControllers.values) {
+      controller.dispose();
+    }
+    _vlcControllers.clear();
+
     globalEnterpriseCameras.forEach((camName, data) {
-      if (data["active"] == true) {
-        _vlcControllers[camName] = VlcPlayerController.network(
-          data["ip"],
-          hwAcc: HwAcc.auto,
-          autoPlay: true,
-          options: VlcPlayerOptions(
-            advanced: VlcAdvancedOptions([
-              '--network-caching=150',
-              '--rtsp-tcp',
-            ]),
-          ),
-        );
+      if (data["active"] == true && data["ip"] != null && data["ip"].toString().isNotEmpty) {
+        try {
+          _vlcControllers[camName] = VlcPlayerController.network(
+            data["ip"],
+            hwAcc: HwAcc.auto,
+            autoPlay: true,
+            options: VlcPlayerOptions(
+              advanced: VlcAdvancedOptions([
+                '--network-caching=150',
+                '--rtsp-tcp',
+              ]),
+            ),
+          );
+        } catch (e) {
+          debugPrint("Stream init error: $e");
+        }
       }
     });
+    setState(() {});
   }
 
   @override
@@ -102,7 +89,6 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
     super.dispose();
   }
 
-  // 🤖 REAL GEMINI VISION API CALL & AI AUTOMATION ENGINE
   Future<void> triggerGeminiVisionScan(String cameraName) async {
     if (walletBalance < 0.75) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -121,7 +107,7 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
     try {
       VlcPlayerController? controller = _vlcControllers[cameraName];
       if (controller == null || !controller.value.isInitialized) {
-        throw Exception("Camera stream not ready");
+        throw Exception("Real camera stream not connected");
       }
 
       var imageBytes = await controller.takeSnapshot();
@@ -179,24 +165,10 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
         throw Exception("Gemini API Error: ${response.statusCode}");
       }
     } catch (e) {
-      String timeStamp = DateTime.now().millisecondsSinceEpoch.toString();
-      String localSavedPath = "/storage/emulated/0/DCIM/FamilyCare_Evidence_$timeStamp.mp4";
-
-      setState(() {
-        walletBalance -= 0.75;
-        globalEnterpriseLogs.insert(0, {
-          "time": "Just now",
-          "camera": cameraName,
-          "event": "🚨 Triggered Manual Capture (API Fallback Activated)",
-          "videoPath": localSavedPath,
-          "level": "High"
-        });
-      });
-
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('🎥 Evidence Video Saved: $localSavedPath'),
-          backgroundColor: Colors.green,
+          content: Text('❌ AI Scan Failed: Real camera connection required'),
+          backgroundColor: Colors.red,
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -255,9 +227,7 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
                 context,
                 MaterialPageRoute(builder: (context) => const EnterpriseSettingsScreen()),
               );
-              setState(() {
-                _initializeRTSPStreams();
-              });
+              _initializeRTSPStreams();
             },
           ),
         ],
@@ -337,152 +307,159 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
               ],
             ),
             const SizedBox(height: 10),
-            GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                crossAxisSpacing: 10,
-                mainAxisSpacing: 10,
-                childAspectRatio: 16 / 12,
-              ),
-              itemCount: globalEnterpriseCameras.length,
-              itemBuilder: (context, index) {
-                String camName = globalEnterpriseCameras.keys.elementAt(index);
-                VlcPlayerController? controller = _vlcControllers[camName];
 
-                return Container(
-                  decoration: BoxDecoration(
-                    color: Colors.black,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.indigoAccent, width: 1.5),
-                  ),
-                  child: Stack(
-                    children: [
-                      Center(
-                        child: controller != null
-                            ? VlcPlayer(
-                                controller: controller,
-                                aspectRatio: 16 / 9,
-                                placeholder: const Center(
-                                  child: CircularProgressIndicator(color: Colors.amberAccent),
-                                ),
-                              )
-                            : const Center(
-                                child: Text('Camera Standby', style: TextStyle(color: Colors.white54, fontSize: 11)),
-                              ),
-                      ),
-                      Positioned(
-                        top: 6,
-                        left: 6,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: Colors.black.withOpacity(0.7),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Text(
-                            camName,
-                            style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold),
-                          ),
+            // अगर कोई कैमरा नहीं है तो खूबसूरत मैसेज दिखाएगा
+            globalEnterpriseCameras.isEmpty
+                ? Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(28),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1E293B),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: Colors.amberAccent.withOpacity(0.3)),
+                    ),
+                    child: Column(
+                      children: [
+                        const Icon(Icons.videocam_off_rounded, size: 48, color: Colors.amberAccent),
+                        const SizedBox(height: 12),
+                        const Text(
+                          'No Camera Nodes Configured',
+                          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
                         ),
-                      ),
-                      Positioned(
-                        bottom: 6,
-                        right: 6,
-                        child: InkWell(
-                          onTap: isAnalyzingAI ? null : () => triggerGeminiVisionScan(camName),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: Colors.redAccent,
-                              borderRadius: BorderRadius.circular(6),
+                        const SizedBox(height: 6),
+                        const Text(
+                          'Tap the settings icon (⚙️) in the top right corner to add your real RTSP IP camera URL.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: Colors.white60, fontSize: 11),
+                        ),
+                      ],
+                    ),
+                  )
+                : GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      crossAxisSpacing: 10,
+                      mainAxisSpacing: 10,
+                      childAspectRatio: 16 / 12,
+                    ),
+                    itemCount: globalEnterpriseCameras.length,
+                    itemBuilder: (context, index) {
+                      String camName = globalEnterpriseCameras.keys.elementAt(index);
+                      VlcPlayerController? controller = _vlcControllers[camName];
+
+                      return Container(
+                        decoration: BoxDecoration(
+                          color: Colors.black,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.indigoAccent, width: 1.5),
+                        ),
+                        child: Stack(
+                          children: [
+                            Center(
+                              child: controller != null
+                                  ? VlcPlayer(
+                                      controller: controller,
+                                      aspectRatio: 16 / 9,
+                                      placeholder: const Center(
+                                        child: CircularProgressIndicator(color: Colors.amberAccent),
+                                      ),
+                                    )
+                                  : const Center(
+                                      child: Text('Connecting Stream...', style: TextStyle(color: Colors.white54, fontSize: 10)),
+                                    ),
                             ),
-                            child: const Text('AI SCAN & CAPTURE',
-                                style: TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold)),
-                          ),
+                            Positioned(
+                              top: 6,
+                              left: 6,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withOpacity(0.7),
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: Text(
+                                  camName,
+                                  style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                            ),
+                            Positioned(
+                              bottom: 6,
+                              right: 6,
+                              child: InkWell(
+                                onTap: isAnalyzingAI ? null : () => triggerGeminiVisionScan(camName),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: Colors.redAccent,
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: const Text('AI SCAN & CAPTURE',
+                                      style: TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold)),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
-                      ),
-                    ],
+                      );
+                    },
                   ),
-                );
-              },
-            ),
             const SizedBox(height: 22),
             const Text(
               'Real-Time Intelligence & Evidence Logs',
               style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white),
             ),
             const SizedBox(height: 10),
-            ListView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: globalEnterpriseLogs.length,
-              itemBuilder: (context, index) {
-                Map log = globalEnterpriseLogs[index];
+            globalEnterpriseLogs.isEmpty
+                ? const Text('No security events logged yet.', style: TextStyle(color: Colors.white54, fontSize: 11))
+                : ListView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: globalEnterpriseLogs.length,
+                    itemBuilder: (context, index) {
+                      Map log = globalEnterpriseLogs[index];
 
-                return Container(
-                  margin: const EdgeInsets.only(bottom: 8),
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF1E293B),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: Colors.indigo.shade900),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Icon(Icons.security_rounded, color: Colors.amberAccent, size: 18),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Column(
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF1E293B),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: Colors.indigo.shade900),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
-                                  log["event"] ?? "",
-                                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 11.5, color: Colors.white),
-                                ),
-                                const SizedBox(height: 3),
-                                Text(
-                                  'Node: ${log["camera"]} • Time: ${log["time"]}',
-                                  style: const TextStyle(fontSize: 9.5, color: Colors.white54),
+                                const Icon(Icons.security_rounded, color: Colors.amberAccent, size: 18),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        log["event"] ?? "",
+                                        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 11.5, color: Colors.white),
+                                      ),
+                                      const SizedBox(height: 3),
+                                      Text(
+                                        'Node: ${log["camera"]} • Time: ${log["time"]}',
+                                        style: const TextStyle(fontSize: 9.5, color: Colors.white54),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ],
                             ),
-                          ),
-                        ],
-                      ),
-                      if (log["videoPath"] != null) ...[
-                        const SizedBox(height: 6),
-                        Container(
-                          padding: const EdgeInsets.all(6),
-                          decoration: BoxDecoration(
-                            color: Colors.black38,
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Row(
-                            children: [
-                              const Icon(Icons.folder_zip_rounded, color: Colors.greenAccent, size: 14),
-                              const SizedBox(width: 6),
-                              Expanded(
-                                child: Text(
-                                  'Saved MP4: ${log["videoPath"]}',
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(fontSize: 9, color: Colors.greenAccent),
-                                ),
-                              ),
-                            ],
-                          ),
+                          ],
                         ),
-                      ]
-                    ],
+                      );
+                    },
                   ),
-                );
-              },
-            ),
           ],
         ),
       ),
@@ -518,15 +495,22 @@ class _EnterpriseSettingsScreenState extends State<EnterpriseSettingsScreen> {
         "resolution": "1080p FHD",
         "latency": "15ms",
       };
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('✅ Real Camera "$name" Added Successfully!'),
+          backgroundColor: Colors.green,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('ℹ️ Settings & API Key updated!'),
+          backgroundColor: Color(0xFF1E1B4B),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
     }
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Settings & Gemini API Config updated!'),
-        backgroundColor: Color(0xFF1E1B4B),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
     Navigator.pop(context);
   }
 
@@ -582,7 +566,7 @@ class _EnterpriseSettingsScreenState extends State<EnterpriseSettingsScreen> {
           const Divider(color: Colors.white24),
           const SizedBox(height: 10),
           const Text(
-            'Add New RTSP Camera Node:',
+            'Add Real RTSP Camera Node:',
             style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white),
           ),
           const SizedBox(height: 10),
@@ -591,7 +575,7 @@ class _EnterpriseSettingsScreenState extends State<EnterpriseSettingsScreen> {
             style: const TextStyle(color: Colors.white, fontSize: 12),
             decoration: InputDecoration(
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-              hintText: 'Camera Location (e.g. Backdoor)',
+              hintText: 'Camera Location (e.g. Main Gate)',
               hintStyle: const TextStyle(color: Colors.white54),
               filled: true,
               fillColor: const Color(0xFF1E293B),
@@ -603,7 +587,7 @@ class _EnterpriseSettingsScreenState extends State<EnterpriseSettingsScreen> {
             style: const TextStyle(color: Colors.white, fontSize: 12),
             decoration: InputDecoration(
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-              hintText: 'RTSP URL (rtsp://admin:pass@192.168.X.X:554/live)',
+              hintText: 'Real RTSP URL (rtsp://username:password@IP:Port/live)',
               hintStyle: const TextStyle(color: Colors.white54),
               filled: true,
               fillColor: const Color(0xFF1E293B),
@@ -620,7 +604,7 @@ class _EnterpriseSettingsScreenState extends State<EnterpriseSettingsScreen> {
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
               onPressed: _saveSystemConfiguration,
-              child: const Text('Save & Apply Enterprise Settings', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+              child: const Text('Save & Apply Settings', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
             ),
           ),
         ],
