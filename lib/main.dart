@@ -4,13 +4,12 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:async';
 
-// 🔴 कोई फर्जी आईपी नहीं! ग्लोबल कैमरा लिस्ट शुरू में बिल्कुल खाली है।
-Map<String, Map<String, dynamic>> globalEnterpriseCameras = {};
+Map globalEnterpriseCameras = {};
 
 String globalCustomAIPrompt = "Scan this video frame carefully. Detect any security threat such as unauthorized intruders, forced entry, smoke/fire, or unattended children near stairs.";
 String globalGeminiApiKey = "AIzaSy_Demo_Gemini_Vision_Key_998877";
 
-List> globalEnterpriseLogs = [];
+List globalEnterpriseLogs = [];
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -45,7 +44,7 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
   double walletBalance = 2450.00;
   bool isSystemArmed = true;
   bool isAnalyzingAI = false;
-  final Map<String, VlcPlayerController> _vlcControllers = {};
+  final Map _vlcControllers = {};
 
   @override
   void initState() {
@@ -105,7 +104,7 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
     });
 
     try {
-      VlcPlayerController? controller = _vlcControllers[cameraName];
+      dynamic controller = _vlcControllers[cameraName];
       if (controller == null || !controller.value.isInitialized) {
         throw Exception("Real camera stream not connected");
       }
@@ -166,7 +165,7 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+        const SnackBar(
           content: Text('❌ AI Scan Failed: Real camera connection required'),
           backgroundColor: Colors.red,
           behavior: SnackBarBehavior.floating,
@@ -307,8 +306,6 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
               ],
             ),
             const SizedBox(height: 10),
-
-            // अगर कोई कैमरा नहीं है तो खूबसूरत मैसेज दिखाएगा
             globalEnterpriseCameras.isEmpty
                 ? Container(
                     width: double.infinity,
@@ -347,7 +344,7 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
                     itemCount: globalEnterpriseCameras.length,
                     itemBuilder: (context, index) {
                       String camName = globalEnterpriseCameras.keys.elementAt(index);
-                      VlcPlayerController? controller = _vlcControllers[camName];
+                      dynamic controller = _vlcControllers[camName];
 
                       return Container(
                         decoration: BoxDecoration(
