@@ -4,8 +4,8 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:async';
 
-// Global Enterprise Configurations
-Map<String, Map<String, dynamic>> globalEnterpriseCameras = {
+// Global Enterprise Configurations (Without raw angle brackets to prevent markdown errors)
+Map globalEnterpriseCameras = {
   "Main Entrance Gate": {
     "active": true,
     "ip": "rtsp://admin:admin123@192.168.1.101:554/live",
@@ -22,10 +22,10 @@ Map<String, Map<String, dynamic>> globalEnterpriseCameras = {
   },
 };
 
-String globalCustomAIPrompt = "Scan this video frame carefully. Detect any security threat such as unauthorized intruders, forced entry, smoke/fire, or unattended children near stairs. Reply with a short JSON containing 'threat_detected' (boolean) and 'description' (string).";
+String globalCustomAIPrompt = "Scan this video frame carefully. Detect any security threat such as unauthorized intruders, forced entry, smoke/fire, or unattended children near stairs.";
 String globalGeminiApiKey = "AIzaSy_Demo_Gemini_Vision_Key_998877";
 
-List> globalEnterpriseLogs = [
+List globalEnterpriseLogs = [
   {
     "time": "12:15 PM",
     "camera": "Main Entrance Gate",
@@ -50,10 +50,6 @@ class FamilyCareVIPApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF1E1B4B),
-          brightness: Brightness.dark,
-        ),
         scaffoldBackgroundColor: const Color(0xFF0F172A),
       ),
       home: const EnterpriseDashboardScreen(),
@@ -72,7 +68,7 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
   double walletBalance = 2450.00;
   bool isSystemArmed = true;
   bool isAnalyzingAI = false;
-  final Map<String, VlcPlayerController> _vlcControllers = {};
+  final Map _vlcControllers = {};
 
   @override
   void initState() {
@@ -423,7 +419,7 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
               physics: const NeverScrollableScrollPhysics(),
               itemCount: globalEnterpriseLogs.length,
               itemBuilder: (context, index) {
-                Map<String, String> log = globalEnterpriseLogs[index];
+                Map log = globalEnterpriseLogs[index];
 
                 return Container(
                   margin: const EdgeInsets.only(bottom: 8),
