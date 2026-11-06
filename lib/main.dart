@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 
-// Global Configurations (Without generic angle brackets to prevent markdown issues)
+// Global Configurations
 Map globalEnterpriseCameras = {
   "Main Entrance Gate": {
     "active": true,
@@ -92,7 +92,6 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
   @override
   void initState() {
     super.initState();
-    // फालतू ऑटोमैटिक टाइमर यहाँ से हमेशा के लिए हटा दिया गया है
   }
 
   @override
@@ -128,7 +127,6 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
       ),
     );
   }
-  
 
   void handleWalletTopUp() {
     setState(() {
@@ -188,13 +186,11 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Status Bar & Recording Indicator
+            // Status Bar & Wallet Card
             Container(
               decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: isRecordingEvidence
-                      ? [const Color(0xFF881337), const Color(0xFF9F1239)]
-                      : [const Color(0xFF1E1B4B), const Color(0xFF312E81)],
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF1E1B4B), Color(0xFF312E81)],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
@@ -207,17 +203,9 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        children: [
-                          Text(
-                            isRecordingEvidence ? 'REC • SAVING VIDEO TO STORAGE' : 'AI WALLET BALANCE',
-                            style: TextStyle(
-                              fontSize: 10,
-                              color: isRecordingEvidence ? Colors.redAccent : Colors.white70,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
+                      const Text(
+                        'AI WALLET BALANCE',
+                        style: TextStyle(fontSize: 10, color: Colors.white70, fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 4),
                       Text(
@@ -276,9 +264,7 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
                     color: const Color(0xFF1E293B),
                     borderRadius: BorderRadius.circular(14),
                     border: Border.all(
-                      color: isRecordingEvidence
-                          ? Colors.redAccent
-                          : (isActive ? Colors.indigo.shade400 : Colors.red.shade400),
+                      color: isActive ? Colors.indigo.shade400 : Colors.red.shade400,
                       width: 1.5,
                     ),
                   ),
@@ -291,19 +277,15 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
                             Icon(
                               Icons.videocam_rounded,
                               size: 32,
-                              color: isRecordingEvidence
-                                  ? Colors.redAccent
-                                  : (isActive ? Colors.greenAccent : Colors.grey),
+                              color: isActive ? Colors.greenAccent : Colors.grey,
                             ),
                             const SizedBox(height: 6),
                             Text(
-                              isRecordingEvidence ? "REC CLIP..." : (isActive ? "LIVE FEED" : "STANDBY"),
+                              isActive ? "LIVE FEED" : "STANDBY",
                               style: TextStyle(
                                 fontSize: 10,
                                 fontWeight: FontWeight.bold,
-                                color: isRecordingEvidence
-                                    ? Colors.redAccent
-                                    : (isActive ? Colors.greenAccent : Colors.grey),
+                                color: isActive ? Colors.greenAccent : Colors.grey,
                               ),
                             ),
                           ],
@@ -334,7 +316,7 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
             ),
             const SizedBox(height: 24),
 
-            // Live Event Intelligence Logs & Evidence Videos Section
+            // Live Event Intelligence Logs Section
             const Text(
               'Real-Time Evidence Logs & Saved Video Clips',
               style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white),
