@@ -491,7 +491,7 @@ class _AiVideoChatSearchScreenState extends State<AiVideoChatSearchScreen> {
   final List _chatMessages = [];
   bool _isSearching = false;
 
-  Future<void> _performAiVideoSearch(String query) async {
+    Future<void> _performAiVideoSearch(String query) async {
     setState(() {
       _chatMessages.add({'sender': 'user', 'message': query});
       _isSearching = true;
@@ -526,11 +526,18 @@ class _AiVideoChatSearchScreenState extends State<AiVideoChatSearchScreen> {
           _isSearching = false;
         });
       } else {
-        throw Exception("API Error: ${response.statusCode}");
+        // यह लाइन गूगल के सर्वर से आया हुआ असली एरर कोड और मैसेज सीधा स्क्रीन पर दिखा देगी
+        setState(() {
+          _chatMessages.add({
+            'sender': 'ai', 
+            'message': '❌ Google Server Error (${response.statusCode}): ${response.body}'
+          });
+          _isSearching = false;
+        });
       }
     } catch (e) {
       setState(() {
-        _chatMessages.add({'sender': 'ai', 'message': '❌ Error fetching footage: Please check your Gemini API key.'});
+        _chatMessages.add({'sender': 'ai', 'message': '❌ Exception caught: $e'});
         _isSearching = false;
       });
     }
