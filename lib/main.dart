@@ -7,7 +7,7 @@ import 'dart:async';
 Map globalEnterpriseCameras = {};
 
 String globalCustomAIPrompt = "Scan this video frame carefully. Detect any security threat such as unauthorized intruders, forced entry, smoke/fire, or unattended children near stairs.";
-String globalGeminiApiKey = "AIzaSy_Demo_Gemini_Vision_Key_998877";
+String globalGeminiApiKey = "AIzaSyC25EUxPvq5c_1fsTsNwmITFXpRloFhqn0";
 
 List globalEnterpriseLogs = [];
 
