@@ -21,7 +21,7 @@ jobs:
       - name: Get Dependencies
         run: flutter pub get
 
-      # (यह स्टेप हटा दिया गया है ताकि आपका कस्टम Android Manifest और Permissons डिलीट न हों)
+      # (हमने यहाँ से android folder को उड़ाने वाला खतरनाक कोड हमेशा के लिए हटा दिया है)
 
       - name: Build APK
         run: flutter build apk --release
@@ -33,4 +33,3 @@ jobs:
         with:
           name: app-release-apk
           path: build/app/outputs/flutter-apk/app-release.apk
-          
