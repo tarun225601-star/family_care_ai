@@ -21,8 +21,18 @@ jobs:
       - name: Get Dependencies
         run: flutter pub get
 
-      # (हमने यहाँ से android folder को उड़ाने वाला कोड पूरी तरह हटा दिया है 
-      # ताकि तेरी असली AndroidManifest.xml फाइल सुरक्षित रहे)
+      - name: Fix Android V2 Embedding & Manifest
+        run: |
+          # Agar android folder nahi hai ya v1 hai, toh yeh use v2 ke sath fresh bana dega
+          rm -rf android
+          flutter create . --platforms=android --org com.familycare.ai
+          
+          # Manifest file mein turant internet aur camera permission inject kar dega
+          MANIFEST_PATH="android/app/src/main/AndroidManifest.xml"
+          if [ -f "$MANIFEST_PATH" ]; then
+            sed -i 's/<application/<uses-permission android:name="android.permission.INTERNET"\/>\n    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"\/>\n    <uses-permission android:name="android.permission.CAMERA"\/>\n    <application/' "$MANIFEST_PATH"
+            echo "Permissions injected successfully into AndroidManifest.xml!"
+          fi
 
       - name: Build APK
         run: flutter build apk --release
@@ -30,7 +40,8 @@ jobs:
           ORG_GRADLE_PROJECT_jvmargs: "-Xmx4g -XX:MaxMetaspaceSize=512m"
 
       - name: Upload APK Artifact
-        uses: actions/upload-artifact@v4
+        uses: upload-artifact@v4
         with:
           name: app-release-apk
           path: build/app/outputs/flutter-apk/app-release.apk
+          
