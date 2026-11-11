@@ -7,10 +7,10 @@ import 'dart:async';
 Map globalEnterpriseCameras = {};
 
 String globalCustomAIPrompt = "Scan this video frame carefully. Detect any security threat such as unauthorized intruders, forced entry, smoke/fire, or unattended children near stairs.";
-String globalGeminiApiKey = "";
+String globalGroqApiKey = "";
 
-// केवल वही मॉडल जो v1 वर्ज़न पर 100% एक्टिव और वर्किंग है
-String globalSelectedGeminiModel = 'gemini-1.5-flash';
+// Groq के सबसे पावरफुल और स्टेबल मॉडल्स (चैट और विजन के लिए)
+String globalSelectedGroqModel = 'llama-3.3-70b-versatile';
 
 List globalEnterpriseLogs = [];
 
@@ -25,7 +25,7 @@ class FamilyCareVIPApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Family Care Vision AI Enterprise',
+      title: 'Family Care Vision AI Enterprise (Groq Edition)',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,
@@ -95,7 +95,8 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
     super.dispose();
   }
 
-  Future<void> triggerGeminiVisionScan(String cameraName) async {
+  // Groq Llama Vision Scan (Camera Frame Analysis)
+  Future<void> triggerGroqVisionScan(String cameraName) async {
     if (walletBalance < 0.75) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -107,10 +108,10 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
       return;
     }
 
-    if (globalGeminiApiKey.trim().isEmpty) {
+    if (globalGroqApiKey.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('⚠️ Please enter your Gemini API Key in Settings (⚙️)!'),
+          content: Text('⚠️ Please enter your Groq API Key in Settings (⚙️)!'),
           backgroundColor: Colors.redAccent,
           behavior: SnackBarBehavior.floating,
         ),
@@ -131,33 +132,38 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
       var imageBytes = await controller.takeSnapshot();
       String base64Image = base64Encode(imageBytes);
 
-      // सीधा v1 वर्ज़न और gemini-1.5-flash का पक्का एंडपॉइंट
-      final url = Uri.parse(
-          'https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${globalGeminiApiKey.trim()}');
+      // Groq Vision API Endpoint
+      final url = Uri.parse('https://api.groq.com/openai/v1/chat/completions');
 
       final response = await http.post(
         url,
-        headers: {'Content-Type': 'application/json'},
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ${globalGroqApiKey.trim()}'
+        },
         body: jsonEncode({
-          "contents": [
+          "model": "llama-3.2-11b-vision-preview",
+          "messages": [
             {
-              "parts": [
-                {"text": globalCustomAIPrompt},
+              "role": "user",
+              "content": [
+                {"type": "text", "text": globalCustomAIPrompt},
                 {
-                  "inline_data": {
-                    "mime_type": "image/jpeg",
-                    "data": base64Image
+                  "type": "image_url",
+                  "image_url": {
+                    "url": "data:image/jpeg;base64,$base64Image"
                   }
                 }
               ]
             }
-          ]
+          ],
+          "max_tokens": 300
         }),
       );
 
       if (response.statusCode == 200) {
         final responseData = jsonDecode(response.body);
-        String aiTextResponse = responseData['candidates']?[0]['content']?['parts']?[0]['text'] ?? "No Threat Detected";
+        String aiTextResponse = responseData['choices']?[0]['message']?['content'] ?? "No Threat Detected";
 
         String timeStamp = DateTime.now().millisecondsSinceEpoch.toString();
         String localSavedPath = "/storage/emulated/0/DCIM/FamilyCare_Evidence_$timeStamp.mp4";
@@ -167,7 +173,7 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
           globalEnterpriseLogs.insert(0, {
             "time": "Just now",
             "camera": cameraName,
-            "event": "🤖 Gemini AI (gemini-1.5-flash): $aiTextResponse",
+            "event": "🤖 Groq Llama Vision: $aiTextResponse",
             "videoPath": localSavedPath,
             "level": "High"
           });
@@ -181,7 +187,7 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
           ),
         );
       } else {
-        throw Exception("Server Error (${response.statusCode}): ${response.body}");
+        throw Exception("Groq Server Error (${response.statusCode}): ${response.body}");
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -222,7 +228,7 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
             Icon(Icons.shield_rounded, color: Colors.amberAccent, size: 24),
             SizedBox(width: 8),
             Text(
-              'Command Center Dashboard',
+              'Command Center (Groq AI)',
               style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
             ),
           ],
@@ -417,7 +423,7 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
                               bottom: 6,
                               right: 6,
                               child: InkWell(
-                                onTap: isAnalyzingAI ? null : () => triggerGeminiVisionScan(camName),
+                                onTap: isAnalyzingAI ? null : () => triggerGroqVisionScan(camName),
                                 child: Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                   decoration: BoxDecoration(
@@ -507,12 +513,13 @@ class _AiVideoChatSearchScreenState extends State<AiVideoChatSearchScreen> {
   final List _chatMessages = [];
   bool _isSearching = false;
 
-  Future<void> _performAiVideoSearch(String query) async {
-    if (globalGeminiApiKey.trim().isEmpty) {
+  // Groq Llama 3.3 70B Versatile Chat Search
+  Future<void> _performGroqChatSearch(String query) async {
+    if (globalGroqApiKey.trim().isEmpty) {
       setState(() {
         _chatMessages.add({
           'sender': 'ai',
-          'message': '❌ API Key missing! Please enter your key in Settings (⚙️).'
+          'message': '❌ Groq API Key missing! Please enter your key in Settings (⚙️).'
         });
       });
       return;
@@ -524,21 +531,24 @@ class _AiVideoChatSearchScreenState extends State<AiVideoChatSearchScreen> {
     });
 
     try {
-      // सीधा v1 वर्ज़न और 1.5-flash मॉडल - कोई एरर नहीं आएगी
-      final url = Uri.parse(
-          'https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${globalGeminiApiKey.trim()}');
+      final url = Uri.parse('https://api.groq.com/openai/v1/chat/completions');
 
       final response = await http.post(
         url,
-        headers: {'Content-Type': 'application/json'},
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ${globalGroqApiKey.trim()}'
+        },
         body: jsonEncode({
-          "contents": [
+          "model": globalSelectedGroqModel,
+          "messages": [
             {
-              "parts": [
-                {
-                  "text": "You are the AI Video Search Engine for NVR/DVR security footage. Based on the user query: '$query', search through the connected camera logs and return a precise event summary, timestamp, and relevant security footage status."
-                }
-              ]
+              "role": "system",
+              "content": "You are the lightning-fast AI Video Intelligence & Search Engine for NVR/DVR security footage."
+            },
+            {
+              "role": "user",
+              "content": "Based on the user query: '$query', search through the connected camera logs and return a precise event summary, timestamp, and security status."
             }
           ]
         }),
@@ -546,7 +556,7 @@ class _AiVideoChatSearchScreenState extends State<AiVideoChatSearchScreen> {
 
       if (response.statusCode == 200) {
         final responseData = jsonDecode(response.body);
-        String aiReply = responseData['candidates']?[0]['content']?['parts']?[0]['text'] ?? "No matching records found.";
+        String aiReply = responseData['choices']?[0]['message']?['content'] ?? "No matching records found.";
 
         setState(() {
           _chatMessages.add({'sender': 'ai', 'message': aiReply});
@@ -556,7 +566,7 @@ class _AiVideoChatSearchScreenState extends State<AiVideoChatSearchScreen> {
         setState(() {
           _chatMessages.add({
             'sender': 'ai', 
-            'message': '❌ Server Error (${response.statusCode}): ${response.body}'
+            'message': '❌ Groq Error (${response.statusCode}): ${response.body}'
           });
           _isSearching = false;
         });
@@ -574,7 +584,7 @@ class _AiVideoChatSearchScreenState extends State<AiVideoChatSearchScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('AI Video Intelligence Chat', style: TextStyle(color: Colors.white, fontSize: 16)),
+        title: const Text('AI Video Intelligence (Groq Llama 3.3)', style: TextStyle(color: Colors.white, fontSize: 14)),
         backgroundColor: const Color(0xFF1E1B4B),
         iconTheme: const IconThemeData(color: Colors.white),
       ),
@@ -586,7 +596,7 @@ class _AiVideoChatSearchScreenState extends State<AiVideoChatSearchScreen> {
                     child: Padding(
                       padding: EdgeInsets.all(24.0),
                       child: Text(
-                        '💬 Ask anything about past footage!\n\ne.g., "Show me who visited yesterday at 4 PM" or "Find when the delivery person arrived at the main gate."',
+                        '💬 Ask anything about past footage using Groq Llama 3.3!\n\ne.g., "Show me who visited yesterday at 4 PM" or "Find delivery person at main gate."',
                         textAlign: TextAlign.center,
                         style: TextStyle(color: Colors.white54, fontSize: 13),
                       ),
@@ -631,7 +641,7 @@ class _AiVideoChatSearchScreenState extends State<AiVideoChatSearchScreen> {
                     controller: _queryController,
                     style: const TextStyle(color: Colors.white, fontSize: 12.5),
                     decoration: const InputDecoration(
-                      hintText: 'Ask about past events (e.g., 4 PM footage)...',
+                      hintText: 'Ask Groq about past events...',
                       hintStyle: TextStyle(color: Colors.white54, fontSize: 12),
                       border: InputBorder.none,
                       contentPadding: EdgeInsets.symmetric(horizontal: 10),
@@ -642,7 +652,7 @@ class _AiVideoChatSearchScreenState extends State<AiVideoChatSearchScreen> {
                   icon: const Icon(Icons.send_rounded, color: Colors.amberAccent),
                   onPressed: () {
                     if (_queryController.text.trim().isNotEmpty) {
-                      _performAiVideoSearch(_queryController.text.trim());
+                      _performGroqChatSearch(_queryController.text.trim());
                     }
                   },
                 ),
@@ -663,17 +673,17 @@ class EnterpriseSettingsScreen extends StatefulWidget {
 }
 
 class _EnterpriseSettingsScreenState extends State<EnterpriseSettingsScreen> {
-  final TextEditingController _geminiKeyController = TextEditingController(text: globalGeminiApiKey);
+  final TextEditingController _groqKeyController = TextEditingController(text: globalGroqApiKey);
   final TextEditingController _nodeIpController = TextEditingController();
   final TextEditingController _nodeNameController = TextEditingController();
   final TextEditingController _promptController = TextEditingController(text: globalCustomAIPrompt);
-  bool _hideGeminiKey = true;
+  bool _hideGroqKey = true;
 
   void _saveSystemConfiguration() {
     String name = _nodeNameController.text.trim();
     String ip = _nodeIpController.text.trim();
     globalCustomAIPrompt = _promptController.text.trim();
-    globalGeminiApiKey = _geminiKeyController.text.trim();
+    globalGroqApiKey = _groqKeyController.text.trim();
 
     if (name.isNotEmpty && ip.isNotEmpty) {
       globalEnterpriseCameras[name] = {
@@ -693,7 +703,7 @@ class _EnterpriseSettingsScreenState extends State<EnterpriseSettingsScreen> {
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('ℹ️ Settings & API Key updated!'),
+          content: Text('ℹ️ Groq Settings & API Key updated successfully!'),
           backgroundColor: Color(0xFF1E1B4B),
           behavior: SnackBarBehavior.floating,
         ),
@@ -706,7 +716,7 @@ class _EnterpriseSettingsScreenState extends State<EnterpriseSettingsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('System Configuration', style: TextStyle(color: Colors.white, fontSize: 16)),
+        title: const Text('System Configuration (Groq)', style: TextStyle(color: Colors.white, fontSize: 16)),
         backgroundColor: const Color(0xFF1E1B4B),
         iconTheme: const IconThemeData(color: Colors.white),
         elevation: 0,
@@ -715,20 +725,20 @@ class _EnterpriseSettingsScreenState extends State<EnterpriseSettingsScreen> {
         padding: const EdgeInsets.all(16.0),
         children: [
           const Text(
-            'Google Gemini API Key:',
+            'Groq API Key:',
             style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white),
           ),
           const SizedBox(height: 6),
           TextField(
-            controller: _geminiKeyController,
-            obscureText: _hideGeminiKey,
+            controller: _groqKeyController,
+            obscureText: _hideGroqKey,
             style: const TextStyle(color: Colors.white, fontSize: 12),
             decoration: InputDecoration(
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
               prefixIcon: const Icon(Icons.key_rounded, color: Colors.amberAccent),
               suffixIcon: IconButton(
-                icon: Icon(_hideGeminiKey ? Icons.visibility_rounded : Icons.visibility_off_rounded, color: Colors.white60),
-                onPressed: () => setState(() => _hideGeminiKey = !_hideGeminiKey),
+                icon: Icon(_hideGroqKey ? Icons.visibility_rounded : Icons.visibility_off_rounded, color: Colors.white60),
+                onPressed: () => setState(() => _hideGroqKey = !_hideGroqKey),
               ),
               filled: true,
               fillColor: const Color(0xFF1E293B),
@@ -736,7 +746,7 @@ class _EnterpriseSettingsScreenState extends State<EnterpriseSettingsScreen> {
           ),
           const SizedBox(height: 20),
           const Text(
-            'Active AI Model: gemini-1.5-flash (Locked for Stability)',
+            'Active AI Engine: Groq Llama 3.3 70B Versatile (Lightning Fast)',
             style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.amberAccent),
           ),
           const SizedBox(height: 20),
@@ -797,7 +807,7 @@ class _EnterpriseSettingsScreenState extends State<EnterpriseSettingsScreen> {
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
               onPressed: _saveSystemConfiguration,
-              child: const Text('Save & Apply Settings', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+              child: const Text('Save & Apply Groq Settings', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
             ),
           ),
         ],
