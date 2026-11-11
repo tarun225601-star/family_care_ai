@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_vlc_player/flutter_vlc_player.dart';
-import 'package:http/http.dart' as http;
+import 'package:google_generative_ai/google_generative_ai.dart';
 import 'dart:convert';
 import 'dart:async';
 
@@ -14,23 +14,14 @@ String globalSelectedGeminiModel = 'gemini-1.5-flash';
 
 final List<String> availableGeminiModels = [
   'gemini-1.5-flash',
-  'gemini-1.5-flash-latest',
   'gemini-1.5-pro',
-  'gemini-1.5-pro-latest',
-  'gemini-pro',
-  'gemini-pro-vision',
   'gemini-1.0-pro',
-  'gemini-1.0-pro-vision',
-  'chat-bison-001',
-  'text-bison-001',
-  'gemini-ultra',
+  'gemini-2.0-flash',
+  'gemini-2.0-flash-exp',
+  'gemini-1.5-flash-latest',
+  'gemini-1.5-pro-latest',
   'gemini-1.5-flash-001',
   'gemini-1.5-pro-001',
-  'gemini-2.0-flash-exp',
-  'gemini-2.0-flash',
-  'gemini-2.0-flash-thinking-exp',
-  'embedding-001',
-  'aqa',
 ];
 
 List globalEnterpriseLogs = [];
@@ -128,6 +119,17 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
       return;
     }
 
+    if (globalGeminiApiKey.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('⚠️ Please enter your Gemini API Key in Settings (⚙️)!'),
+          backgroundColor: Colors.redAccent,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
     setState(() {
       isAnalyzingAI = true;
     });
@@ -139,75 +141,44 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
       }
 
       var imageBytes = await controller.takeSnapshot();
-      String base64Image = base64Encode(imageBytes);
 
-      // ऑटोमैटिक फॉールबैक एंडपॉइंट्स की लिस्ट
-      final List<String> endpointsToTry = [
-        'https://generativelanguage.googleapis.com/v1/models/$globalSelectedGeminiModel:generateContent?key=$globalGeminiApiKey',
-        'https://generativelanguage.googleapis.com/v1beta/models/$globalSelectedGeminiModel:generateContent?key=$globalGeminiApiKey',
-        'https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=$globalGeminiApiKey',
-        'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=$globalGeminiApiKey',
+      // आधिकारिक Google Generative AI SDK से विजन स्कैन
+      final model = GenerativeModel(
+        model: globalSelectedGeminiModel,
+        apiKey: globalGeminiApiKey.trim(),
+      );
+
+      final content = [
+        Content.multi([
+          TextPart(globalCustomAIPrompt),
+          DataPart('image/jpeg', imageBytes),
+        ])
       ];
 
-      http.Response? successfulResponse;
+      final response = await model.generateContent(content);
+      String aiTextResponse = response.text ?? "No Threat Detected";
 
-      for (String endpoint in endpointsToTry) {
-        try {
-          final response = await http.post(
-            Uri.parse(endpoint),
-            headers: {'Content-Type': 'application/json'},
-            body: jsonEncode({
-              "contents": [
-                {
-                  "parts": [
-                    {"text": globalCustomAIPrompt},
-                    {
-                      "inline_data": {
-                        "mime_type": "image/jpeg",
-                        "data": base64Image
-                      }
-                    }
-                  ]
-                }
-              ]
-            }),
-          );
+      String timeStamp = DateTime.now().millisecondsSinceEpoch.toString();
+      String localSavedPath = "/storage/emulated/0/DCIM/FamilyCare_Evidence_$timeStamp.mp4";
 
-          if (response.statusCode == 200) {
-            successfulResponse = response;
-            break;
-          }
-        } catch (_) {}
-      }
-
-      if (successfulResponse != null && successfulResponse.statusCode == 200) {
-        final responseData = jsonDecode(successfulResponse.body);
-        String aiTextResponse = responseData['candidates']?[0]['content']?['parts']?[0]['text'] ?? "No Threat Detected";
-
-        String timeStamp = DateTime.now().millisecondsSinceEpoch.toString();
-        String localSavedPath = "/storage/emulated/0/DCIM/FamilyCare_Evidence_$timeStamp.mp4";
-
-        setState(() {
-          walletBalance -= 0.75;
-          globalEnterpriseLogs.insert(0, {
-            "time": "Just now",
-            "camera": cameraName,
-            "event": "🤖 Gemini AI ($globalSelectedGeminiModel): $aiTextResponse",
-            "videoPath": localSavedPath,
-            "level": "High"
-          });
+      setState(() {
+        walletBalance -= 0.75;
+        globalEnterpriseLogs.insert(0, {
+          "time": "Just now",
+          "camera": cameraName,
+          "event": "🤖 Gemini AI ($globalSelectedGeminiModel): $aiTextResponse",
+          "videoPath": localSavedPath,
+          "level": "High"
         });
+      });
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('🚨 AI Scan Completed: $localSavedPath'),
-            backgroundColor: Colors.redAccent,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      } else {
-        throw Exception("All API endpoints failed. Please check your API Key.");
-      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('🚨 AI Scan Completed ($globalSelectedGeminiModel): $localSavedPath'),
+          backgroundColor: Colors.redAccent,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -533,66 +504,41 @@ class _AiVideoChatSearchScreenState extends State<AiVideoChatSearchScreen> {
   bool _isSearching = false;
 
   Future<void> _performAiVideoSearch(String query) async {
+    if (globalGeminiApiKey.trim().isEmpty) {
+      setState(() {
+        _chatMessages.add({
+          'sender': 'ai',
+          'message': '❌ API Key not found! Please set your Gemini API key in Settings (⚙️).'
+        });
+      });
+      return;
+    }
+
     setState(() {
       _chatMessages.add({'sender': 'user', 'message': query});
       _isSearching = true;
     });
 
     try {
-      final List<String> endpointsToTry = [
-        'https://generativelanguage.googleapis.com/v1/models/$globalSelectedGeminiModel:generateContent?key=$globalGeminiApiKey',
-        'https://generativelanguage.googleapis.com/v1beta/models/$globalSelectedGeminiModel:generateContent?key=$globalGeminiApiKey',
-        'https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=$globalGeminiApiKey',
-        'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=$globalGeminiApiKey',
-      ];
+      // आधिकारिक Google Generative AI SDK से चैट कॉल
+      final model = GenerativeModel(
+        model: globalSelectedGeminiModel,
+        apiKey: globalGeminiApiKey.trim(),
+      );
 
-      http.Response? successfulResponse;
+      final prompt = "You are the AI Video Search Engine for NVR/DVR security footage. Based on the user query: '$query', search through the connected camera logs and return a precise event summary, timestamp, and relevant security footage status.";
+      final content = [Content.text(prompt)];
+      
+      final response = await model.generateContent(content);
+      String aiReply = response.text ?? "No matching records found.";
 
-      for (String endpoint in endpointsToTry) {
-        try {
-          final response = await http.post(
-            Uri.parse(endpoint),
-            headers: {'Content-Type': 'application/json'},
-            body: jsonEncode({
-              "contents": [
-                {
-                  "parts": [
-                    {
-                      "text": "You are the AI Video Search Engine for NVR/DVR security footage. Based on the user query: '$query', search through the connected camera logs and return a precise event summary, timestamp, and relevant security footage status."
-                    }
-                  ]
-                }
-              ]
-            }),
-          );
-
-          if (response.statusCode == 200) {
-            successfulResponse = response;
-            break;
-          }
-        } catch (_) {}
-      }
-
-      if (successfulResponse != null && successfulResponse.statusCode == 200) {
-        final responseData = jsonDecode(successfulResponse.body);
-        String aiReply = responseData['candidates']?[0]['content']?['parts']?[0]['text'] ?? "No matching records found.";
-
-        setState(() {
-          _chatMessages.add({'sender': 'ai', 'message': aiReply});
-          _isSearching = false;
-        });
-      } else {
-        setState(() {
-          _chatMessages.add({
-            'sender': 'ai', 
-            'message': '❌ All endpoints failed. Please check your API Key.'
-          });
-          _isSearching = false;
-        });
-      }
+      setState(() {
+        _chatMessages.add({'sender': 'ai', 'message': aiReply});
+        _isSearching = false;
+      });
     } catch (e) {
       setState(() {
-        _chatMessages.add({'sender': 'ai', 'message': '❌ Exception: $e'});
+        _chatMessages.add({'sender': 'ai', 'message': '❌ Error: $e'});
         _isSearching = false;
       });
     }
@@ -765,7 +711,7 @@ class _EnterpriseSettingsScreenState extends State<EnterpriseSettingsScreen> {
           ),
           const SizedBox(height: 20),
           const Text(
-            'Select Gemini AI Model (20+ Models Available):',
+            'Select Gemini AI Model:',
             style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white),
           ),
           const SizedBox(height: 6),
@@ -778,7 +724,9 @@ class _EnterpriseSettingsScreenState extends State<EnterpriseSettingsScreen> {
             ),
             child: DropdownButtonHideUnderline(
               child: DropdownButton<String>(
-                value: globalSelectedGeminiModel,
+                value: availableGeminiModels.contains(globalSelectedGeminiModel) 
+                    ? globalSelectedGeminiModel 
+                    : availableGeminiModels.first,
                 isExpanded: true,
                 dropdownColor: const Color(0xFF1E293B),
                 style: const TextStyle(color: Colors.white, fontSize: 13),
@@ -789,9 +737,11 @@ class _EnterpriseSettingsScreenState extends State<EnterpriseSettingsScreen> {
                   );
                 }).toList(),
                 onChanged: (String? newValue) {
-                  setState(() {
-                    globalSelectedGeminiModel = newValue!;
-                  });
+                  if (newValue != null) {
+                    setState(() {
+                      globalSelectedGeminiModel = newValue;
+                    });
+                  }
                 },
               ),
             ),
