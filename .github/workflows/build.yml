@@ -21,7 +21,8 @@ jobs:
       - name: Get Dependencies
         run: flutter pub get
 
-      # (हमने यहाँ से android folder को उड़ाने वाला खतरनाक कोड हमेशा के लिए हटा दिया है)
+      # (हमने यहाँ से android folder को उड़ाने वाला कोड पूरी तरह हटा दिया है 
+      # ताकि तेरी असली AndroidManifest.xml फाइल सुरक्षित रहे)
 
       - name: Build APK
         run: flutter build apk --release
