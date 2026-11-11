@@ -1,0 +1,19 @@
+# Flutter/Dart/Pub specific
+.dart_tool/
+.packages
+.pub/
+build/
+
+# IDE specific
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+
+# OS specific
+.DS_Store
+Thumbs.db
+
+# NOTE: Yahan 'android/' ya 'ios/' ko ignore nahi kiya gaya hai,
+# taaki GitHub Actions par build hote waqt Android folder aur Manifest file milti rahe!
