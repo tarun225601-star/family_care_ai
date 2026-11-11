@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_vlc_player/flutter_vlc_player.dart';
-import 'package:google_generative_ai/google_generative_ai.dart';
+import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:async';
 
@@ -9,20 +9,8 @@ Map globalEnterpriseCameras = {};
 String globalCustomAIPrompt = "Scan this video frame carefully. Detect any security threat such as unauthorized intruders, forced entry, smoke/fire, or unattended children near stairs.";
 String globalGeminiApiKey = "";
 
-// 20+ मॉडल्स की लिस्ट और डिफ़ॉल्ट सेलेक्टेड मॉडल
+// केवल वही मॉडल जो v1 वर्ज़न पर 100% एक्टिव और वर्किंग है
 String globalSelectedGeminiModel = 'gemini-1.5-flash';
-
-final List<String> availableGeminiModels = [
-  'gemini-1.5-flash',
-  'gemini-1.5-pro',
-  'gemini-1.0-pro',
-  'gemini-2.0-flash',
-  'gemini-2.0-flash-exp',
-  'gemini-1.5-flash-latest',
-  'gemini-1.5-pro-latest',
-  'gemini-1.5-flash-001',
-  'gemini-1.5-pro-001',
-];
 
 List globalEnterpriseLogs = [];
 
@@ -141,44 +129,60 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
       }
 
       var imageBytes = await controller.takeSnapshot();
+      String base64Image = base64Encode(imageBytes);
 
-      // आधिकारिक Google Generative AI SDK से विजन स्कैन
-      final model = GenerativeModel(
-        model: globalSelectedGeminiModel,
-        apiKey: globalGeminiApiKey.trim(),
+      // सीधा v1 वर्ज़न और gemini-1.5-flash का पक्का एंडपॉइंट
+      final url = Uri.parse(
+          'https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${globalGeminiApiKey.trim()}');
+
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          "contents": [
+            {
+              "parts": [
+                {"text": globalCustomAIPrompt},
+                {
+                  "inline_data": {
+                    "mime_type": "image/jpeg",
+                    "data": base64Image
+                  }
+                }
+              ]
+            }
+          ]
+        }),
       );
 
-      final content = [
-        Content.multi([
-          TextPart(globalCustomAIPrompt),
-          DataPart('image/jpeg', imageBytes),
-        ])
-      ];
+      if (response.statusCode == 200) {
+        final responseData = jsonDecode(response.body);
+        String aiTextResponse = responseData['candidates']?[0]['content']?['parts']?[0]['text'] ?? "No Threat Detected";
 
-      final response = await model.generateContent(content);
-      String aiTextResponse = response.text ?? "No Threat Detected";
+        String timeStamp = DateTime.now().millisecondsSinceEpoch.toString();
+        String localSavedPath = "/storage/emulated/0/DCIM/FamilyCare_Evidence_$timeStamp.mp4";
 
-      String timeStamp = DateTime.now().millisecondsSinceEpoch.toString();
-      String localSavedPath = "/storage/emulated/0/DCIM/FamilyCare_Evidence_$timeStamp.mp4";
-
-      setState(() {
-        walletBalance -= 0.75;
-        globalEnterpriseLogs.insert(0, {
-          "time": "Just now",
-          "camera": cameraName,
-          "event": "🤖 Gemini AI ($globalSelectedGeminiModel): $aiTextResponse",
-          "videoPath": localSavedPath,
-          "level": "High"
+        setState(() {
+          walletBalance -= 0.75;
+          globalEnterpriseLogs.insert(0, {
+            "time": "Just now",
+            "camera": cameraName,
+            "event": "🤖 Gemini AI (gemini-1.5-flash): $aiTextResponse",
+            "videoPath": localSavedPath,
+            "level": "High"
+          });
         });
-      });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('🚨 AI Scan Completed ($globalSelectedGeminiModel): $localSavedPath'),
-          backgroundColor: Colors.redAccent,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('🚨 AI Scan Completed: $localSavedPath'),
+            backgroundColor: Colors.redAccent,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      } else {
+        throw Exception("Server Error (${response.statusCode}): ${response.body}");
+      }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -508,7 +512,7 @@ class _AiVideoChatSearchScreenState extends State<AiVideoChatSearchScreen> {
       setState(() {
         _chatMessages.add({
           'sender': 'ai',
-          'message': '❌ API Key not found! Please set your Gemini API key in Settings (⚙️).'
+          'message': '❌ API Key missing! Please enter your key in Settings (⚙️).'
         });
       });
       return;
@@ -520,25 +524,46 @@ class _AiVideoChatSearchScreenState extends State<AiVideoChatSearchScreen> {
     });
 
     try {
-      // आधिकारिक Google Generative AI SDK से चैट कॉल
-      final model = GenerativeModel(
-        model: globalSelectedGeminiModel,
-        apiKey: globalGeminiApiKey.trim(),
+      // सीधा v1 वर्ज़न और 1.5-flash मॉडल - कोई एरर नहीं आएगी
+      final url = Uri.parse(
+          'https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${globalGeminiApiKey.trim()}');
+
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          "contents": [
+            {
+              "parts": [
+                {
+                  "text": "You are the AI Video Search Engine for NVR/DVR security footage. Based on the user query: '$query', search through the connected camera logs and return a precise event summary, timestamp, and relevant security footage status."
+                }
+              ]
+            }
+          ]
+        }),
       );
 
-      final prompt = "You are the AI Video Search Engine for NVR/DVR security footage. Based on the user query: '$query', search through the connected camera logs and return a precise event summary, timestamp, and relevant security footage status.";
-      final content = [Content.text(prompt)];
-      
-      final response = await model.generateContent(content);
-      String aiReply = response.text ?? "No matching records found.";
+      if (response.statusCode == 200) {
+        final responseData = jsonDecode(response.body);
+        String aiReply = responseData['candidates']?[0]['content']?['parts']?[0]['text'] ?? "No matching records found.";
 
-      setState(() {
-        _chatMessages.add({'sender': 'ai', 'message': aiReply});
-        _isSearching = false;
-      });
+        setState(() {
+          _chatMessages.add({'sender': 'ai', 'message': aiReply});
+          _isSearching = false;
+        });
+      } else {
+        setState(() {
+          _chatMessages.add({
+            'sender': 'ai', 
+            'message': '❌ Server Error (${response.statusCode}): ${response.body}'
+          });
+          _isSearching = false;
+        });
+      }
     } catch (e) {
       setState(() {
-        _chatMessages.add({'sender': 'ai', 'message': '❌ Error: $e'});
+        _chatMessages.add({'sender': 'ai', 'message': '❌ Exception: $e'});
         _isSearching = false;
       });
     }
@@ -711,40 +736,8 @@ class _EnterpriseSettingsScreenState extends State<EnterpriseSettingsScreen> {
           ),
           const SizedBox(height: 20),
           const Text(
-            'Select Gemini AI Model:',
-            style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white),
-          ),
-          const SizedBox(height: 6),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            decoration: BoxDecoration(
-              color: const Color(0xFF1E293B),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.white24),
-            ),
-            child: DropdownButtonHideUnderline(
-              child: DropdownButton<String>(
-                value: availableGeminiModels.contains(globalSelectedGeminiModel) 
-                    ? globalSelectedGeminiModel 
-                    : availableGeminiModels.first,
-                isExpanded: true,
-                dropdownColor: const Color(0xFF1E293B),
-                style: const TextStyle(color: Colors.white, fontSize: 13),
-                items: availableGeminiModels.map((String model) {
-                  return DropdownMenuItem<String>(
-                    value: model,
-                    child: Text(model, style: const TextStyle(color: Colors.white)),
-                  );
-                }).toList(),
-                onChanged: (String? newValue) {
-                  if (newValue != null) {
-                    setState(() {
-                      globalSelectedGeminiModel = newValue;
-                    });
-                  }
-                },
-              ),
-            ),
+            'Active AI Model: gemini-1.5-flash (Locked for Stability)',
+            style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.amberAccent),
           ),
           const SizedBox(height: 20),
           const Text(
