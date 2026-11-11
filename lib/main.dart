@@ -141,32 +141,47 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
       var imageBytes = await controller.takeSnapshot();
       String base64Image = base64Encode(imageBytes);
 
-      // यहाँ अब globalSelectedGeminiModel इस्तेमाल हो रहा है
-      final url = Uri.parse(
-          'https://generativelanguage.googleapis.com/v1beta/models/$globalSelectedGeminiModel:generateContent?key=$globalGeminiApiKey');
+      // ऑटोमैटिक फॉールबैक एंडपॉइंट्स की लिस्ट
+      final List<String> endpointsToTry = [
+        'https://generativelanguage.googleapis.com/v1/models/$globalSelectedGeminiModel:generateContent?key=$globalGeminiApiKey',
+        'https://generativelanguage.googleapis.com/v1beta/models/$globalSelectedGeminiModel:generateContent?key=$globalGeminiApiKey',
+        'https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=$globalGeminiApiKey',
+        'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=$globalGeminiApiKey',
+      ];
 
-      final response = await http.post(
-        url,
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          "contents": [
-            {
-              "parts": [
-                {"text": globalCustomAIPrompt},
+      http.Response? successfulResponse;
+
+      for (String endpoint in endpointsToTry) {
+        try {
+          final response = await http.post(
+            Uri.parse(endpoint),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({
+              "contents": [
                 {
-                  "inline_data": {
-                    "mime_type": "image/jpeg",
-                    "data": base64Image
-                  }
+                  "parts": [
+                    {"text": globalCustomAIPrompt},
+                    {
+                      "inline_data": {
+                        "mime_type": "image/jpeg",
+                        "data": base64Image
+                      }
+                    }
+                  ]
                 }
               ]
-            }
-          ]
-        }),
-      );
+            }),
+          );
 
-      if (response.statusCode == 200) {
-        final responseData = jsonDecode(response.body);
+          if (response.statusCode == 200) {
+            successfulResponse = response;
+            break;
+          }
+        } catch (_) {}
+      }
+
+      if (successfulResponse != null && successfulResponse.statusCode == 200) {
+        final responseData = jsonDecode(successfulResponse.body);
         String aiTextResponse = responseData['candidates']?[0]['content']?['parts']?[0]['text'] ?? "No Threat Detected";
 
         String timeStamp = DateTime.now().millisecondsSinceEpoch.toString();
@@ -185,13 +200,13 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('🚨 AI Scan Completed ($globalSelectedGeminiModel): $localSavedPath'),
+            content: Text('🚨 AI Scan Completed: $localSavedPath'),
             backgroundColor: Colors.redAccent,
             behavior: SnackBarBehavior.floating,
           ),
         );
       } else {
-        throw Exception("Gemini API Error (${response.statusCode}): ${response.body}");
+        throw Exception("All API endpoints failed. Please check your API Key.");
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -524,29 +539,43 @@ class _AiVideoChatSearchScreenState extends State<AiVideoChatSearchScreen> {
     });
 
     try {
-      // यहाँ भी globalSelectedGeminiModel का इस्तेमाल किया गया है
-      final url = Uri.parse(
-          'https://generativelanguage.googleapis.com/v1beta/models/$globalSelectedGeminiModel:generateContent?key=$globalGeminiApiKey');
+      final List<String> endpointsToTry = [
+        'https://generativelanguage.googleapis.com/v1/models/$globalSelectedGeminiModel:generateContent?key=$globalGeminiApiKey',
+        'https://generativelanguage.googleapis.com/v1beta/models/$globalSelectedGeminiModel:generateContent?key=$globalGeminiApiKey',
+        'https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=$globalGeminiApiKey',
+        'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=$globalGeminiApiKey',
+      ];
 
-      final response = await http.post(
-        url,
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          "contents": [
-            {
-              "parts": [
+      http.Response? successfulResponse;
+
+      for (String endpoint in endpointsToTry) {
+        try {
+          final response = await http.post(
+            Uri.parse(endpoint),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({
+              "contents": [
                 {
-                  "text": "You are the AI Video Search Engine for NVR/DVR security footage. Based on the user query: '$query', search through the connected camera logs and return a precise event summary, timestamp, and relevant security footage status."
+                  "parts": [
+                    {
+                      "text": "You are the AI Video Search Engine for NVR/DVR security footage. Based on the user query: '$query', search through the connected camera logs and return a precise event summary, timestamp, and relevant security footage status."
+                    }
+                  ]
                 }
               ]
-            }
-          ]
-        }),
-      );
+            }),
+          );
 
-      if (response.statusCode == 200) {
-        final responseData = jsonDecode(response.body);
-        String aiReply = responseData['candidates']?[0]['content']?['parts']?[0]['text'] ?? "No matching records found for this time.";
+          if (response.statusCode == 200) {
+            successfulResponse = response;
+            break;
+          }
+        } catch (_) {}
+      }
+
+      if (successfulResponse != null && successfulResponse.statusCode == 200) {
+        final responseData = jsonDecode(successfulResponse.body);
+        String aiReply = responseData['candidates']?[0]['content']?['parts']?[0]['text'] ?? "No matching records found.";
 
         setState(() {
           _chatMessages.add({'sender': 'ai', 'message': aiReply});
@@ -556,14 +585,14 @@ class _AiVideoChatSearchScreenState extends State<AiVideoChatSearchScreen> {
         setState(() {
           _chatMessages.add({
             'sender': 'ai', 
-            'message': '❌ Google Server Error (${response.statusCode}): ${response.body}'
+            'message': '❌ All endpoints failed. Please check your API Key.'
           });
           _isSearching = false;
         });
       }
     } catch (e) {
       setState(() {
-        _chatMessages.add({'sender': 'ai', 'message': '❌ Exception caught: $e'});
+        _chatMessages.add({'sender': 'ai', 'message': '❌ Exception: $e'});
         _isSearching = false;
       });
     }
@@ -735,8 +764,6 @@ class _EnterpriseSettingsScreenState extends State<EnterpriseSettingsScreen> {
             ),
           ),
           const SizedBox(height: 20),
-
-          // --- यहाँ ड्रॉपडाउन मेनू जोड़ा गया है ---
           const Text(
             'Select Gemini AI Model (20+ Models Available):',
             style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white),
@@ -770,8 +797,6 @@ class _EnterpriseSettingsScreenState extends State<EnterpriseSettingsScreen> {
             ),
           ),
           const SizedBox(height: 20),
-          // ------------------------------------
-
           const Text(
             'Custom AI Detection Prompt:',
             style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white),
