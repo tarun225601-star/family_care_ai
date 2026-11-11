@@ -9,8 +9,8 @@ Map globalEnterpriseCameras = {};
 String globalCustomAIPrompt = "Scan this video frame carefully. Detect any security threat such as unauthorized intruders, forced entry, smoke/fire, or unattended children near stairs.";
 String globalGroqApiKey = "";
 
-// Groq के सबसे पावरफुल और स्टेबल मॉडल्स (चैट और विजन के लिए)
-String globalSelectedGroqModel = 'llama-3.3-70b-versatile';
+// डिफ़ॉल्ट रूप से सबसे स्टेबल मॉडल
+String globalSelectedGroqModel = 'llama-3.1-8b-instant';
 
 List globalEnterpriseLogs = [];
 
@@ -132,7 +132,6 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
       var imageBytes = await controller.takeSnapshot();
       String base64Image = base64Encode(imageBytes);
 
-      // Groq Vision API Endpoint
       final url = Uri.parse('https://api.groq.com/openai/v1/chat/completions');
 
       final response = await http.post(
@@ -173,7 +172,7 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
           globalEnterpriseLogs.insert(0, {
             "time": "Just now",
             "camera": cameraName,
-            "event": "🤖 Groq Llama Vision: $aiTextResponse",
+            "event": "🤖 Groq Vision: $aiTextResponse",
             "videoPath": localSavedPath,
             "level": "High"
           });
@@ -513,7 +512,6 @@ class _AiVideoChatSearchScreenState extends State<AiVideoChatSearchScreen> {
   final List _chatMessages = [];
   bool _isSearching = false;
 
-  // Groq Llama 3.3 70B Versatile Chat Search
   Future<void> _performGroqChatSearch(String query) async {
     if (globalGroqApiKey.trim().isEmpty) {
       setState(() {
@@ -582,9 +580,13 @@ class _AiVideoChatSearchScreenState extends State<AiVideoChatSearchScreen> {
 
   @override
   Widget build(BuildContext context) {
+    String currentModelDisplay = globalSelectedGroqModel.length > 20 
+        ? '${globalSelectedGroqModel.substring(0, 18)}...' 
+        : globalSelectedGroqModel;
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('AI Video Intelligence (Groq Llama 3.3)', style: TextStyle(color: Colors.white, fontSize: 14)),
+        title: Text('AI Chat ($currentModelDisplay)', style: const TextStyle(color: Colors.white, fontSize: 13)),
         backgroundColor: const Color(0xFF1E1B4B),
         iconTheme: const IconThemeData(color: Colors.white),
       ),
@@ -596,7 +598,7 @@ class _AiVideoChatSearchScreenState extends State<AiVideoChatSearchScreen> {
                     child: Padding(
                       padding: EdgeInsets.all(24.0),
                       child: Text(
-                        '💬 Ask anything about past footage using Groq Llama 3.3!\n\ne.g., "Show me who visited yesterday at 4 PM" or "Find delivery person at main gate."',
+                        '💬 Ask anything about past footage using Groq AI!\n\ne.g., "Show me who visited yesterday at 4 PM" or "Find delivery person at main gate."',
                         textAlign: TextAlign.center,
                         style: TextStyle(color: Colors.white54, fontSize: 13),
                       ),
@@ -679,6 +681,30 @@ class _EnterpriseSettingsScreenState extends State<EnterpriseSettingsScreen> {
   final TextEditingController _promptController = TextEditingController(text: globalCustomAIPrompt);
   bool _hideGroqKey = true;
 
+  // 20 सबसे बेहतरीन और एक्टिव Groq मॉडल्स की लिस्ट
+  final List<String> _availableGroqModels = [
+    'llama-3.1-8b-instant',
+    'llama-3.3-70b-versatile',
+    'llama-3.1-70b-versatile',
+    'llama-3.2-1b-preview',
+    'llama-3.2-3b-preview',
+    'llama-3.2-11b-vision-preview',
+    'llama-3.2-90b-vision-preview',
+    'llama3-8b-8192',
+    'llama3-70b-8192',
+    'mixtral-8x7b-32768',
+    'gemma-7b-it',
+    'gemma2-9b-it',
+    'whisper-large-v3',
+    'whisper-large-v3-turbo',
+    'distil-whisper-large-v3-en',
+    'llama-guard-3-8b',
+    'llama-3.3-70b-specdec',
+    'llama-3.1-405b-reasoning',
+    'llama3-groq-70b-8192-tool-use-preview',
+    'llama3-groq-8b-8192-tool-use-preview',
+  ];
+
   void _saveSystemConfiguration() {
     String name = _nodeNameController.text.trim();
     String ip = _nodeIpController.text.trim();
@@ -703,7 +729,7 @@ class _EnterpriseSettingsScreenState extends State<EnterpriseSettingsScreen> {
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('ℹ️ Groq Settings & API Key updated successfully!'),
+          content: Text('ℹ️ Groq Settings & Model updated successfully!'),
           backgroundColor: Color(0xFF1E1B4B),
           behavior: SnackBarBehavior.floating,
         ),
@@ -746,8 +772,39 @@ class _EnterpriseSettingsScreenState extends State<EnterpriseSettingsScreen> {
           ),
           const SizedBox(height: 20),
           const Text(
-            'Active AI Engine: Groq Llama 3.3 70B Versatile (Lightning Fast)',
-            style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.amberAccent),
+            'Select Groq AI Model (20 Options):',
+            style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white),
+          ),
+          const SizedBox(height: 6),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1E293B),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.white24),
+            ),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<String>(
+                value: globalSelectedGroqModel,
+                dropdownColor: const Color(0xFF1E293B),
+                icon: const Icon(Icons.arrow_drop_down_rounded, color: Colors.amberAccent),
+                style: const TextStyle(color: Colors.white, fontSize: 12),
+                isExpanded: true,
+                items: _availableGroqModels.map((String model) {
+                  return DropdownMenuItem<String>(
+                    value: model,
+                    child: Text(model, style: const TextStyle(color: Colors.white)),
+                  );
+                }).toList(),
+                onChanged: (String? newValue) {
+                  if (newValue != null) {
+                    setState(() {
+                      globalSelectedGroqModel = newValue;
+                    });
+                  }
+                },
+              ),
+            ),
           ),
           const SizedBox(height: 20),
           const Text(
