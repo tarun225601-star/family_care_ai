@@ -21,10 +21,7 @@ jobs:
       - name: Get Dependencies
         run: flutter pub get
 
-      - name: Clean & Recreate Android Project
-        run: |
-          rm -rf android
-          flutter create . --platforms=android
+      # (यह स्टेप हटा दिया गया है ताकि आपका कस्टम Android Manifest और Permissons डिलीट न हों)
 
       - name: Build APK
         run: flutter build apk --release
@@ -36,3 +33,4 @@ jobs:
         with:
           name: app-release-apk
           path: build/app/outputs/flutter-apk/app-release.apk
+          
