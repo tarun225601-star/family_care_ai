@@ -4,35 +4,53 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:async';
 
-// ==========================================
-// 1. GLOBAL STATE & ENTERPRISE CONSTANTS
-// ==========================================
+// ============================================================================
+// 1. GLOBAL ENTERPRISE STATE & CONFIGURATION CONSTANTS
+// ============================================================================
 
-Map<String, dynamic> globalEnterpriseCameras = {
-  "Main Entrance": {"active": true, "ip": "rtsp://192.168.1.100:554/stream1"},
-  "Backyard Gate": {"active": true, "ip": "rtsp://192.168.1.101:554/stream1"}
+Map globalEnterpriseCameras = {
+  "Main Gate Entrance": {
+    "active": true,
+    "ip": "rtsp://192.168.1.100:554/stream1"
+  },
+  "Backyard Perimeter": {
+    "active": true,
+    "ip": "rtsp://192.168.1.101:554/stream1"
+  },
+  "Living Room Stairecase": {
+    "active": true,
+    "ip": "rtsp://192.168.1.102:554/stream1"
+  },
+  "Garage & Parking": {
+    "active": true,
+    "ip": "rtsp://192.168.1.103:554/stream1"
+  }
 };
 
-String globalCustomAIPrompt = "Scan this video frame carefully. Detect any security threat such as unauthorized intruders, forced entry, smoke/fire, or unattended children near stairs.";
+String globalCustomAIPrompt = 
+    "Scan this video frame carefully for the Family Care Security Hub. "
+    "Detect any security threat such as unauthorized intruders, forced entry, "
+    "smoke, fire, hazardous objects, or unattended children near dangerous zones.";
+
 String globalGroqApiKey = "";
 
-// Default Working Target Models
+// Default Stabilized Target Models for Enterprise Production
 String activeChatModel = "llama-3.1-8b-instant";
 String activeVisionModel = "llama-3.2-11b-vision-preview";
 
-List> globalEnterpriseLogs = [
+List globalEnterpriseLogs = [
   {
-    "time": "Initial System Boot",
-    "camera": "System",
-    "event": "🛡️ Security Hub Initialized in Standby Mode",
+    "time": "System Boot",
+    "camera": "Master Hub",
+    "event": "🛡️ Enterprise Security Hub Initialized Successfully in Armed Mode.",
     "videoPath": "N/A",
     "level": "Info"
   }
 ];
 
-// ==========================================
-// 2. MAIN APPLICATION ENTRY POINT
-// ==========================================
+// ============================================================================
+// 2. MAIN APPLICATION ENTRY POINT & THEME CONFIGURATION
+// ============================================================================
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -45,7 +63,7 @@ class FamilyCareVIPApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Family Care Vision AI Enterprise',
+      title: 'Family Care Vision AI Enterprise Edition',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,
@@ -54,15 +72,19 @@ class FamilyCareVIPApp extends StatelessWidget {
           seedColor: const Color(0xFF1E1B4B),
           brightness: Brightness.dark,
         ),
+        textTheme: const TextTheme(
+          bodyLarge: TextStyle(color: Colors.white),
+          bodyMedium: TextStyle(color: Colors.white70),
+        ),
       ),
       home: const EnterpriseDashboardScreen(),
     );
   }
 }
 
-// ==========================================
-// 3. ENTERPRISE DASHBOARD SCREEN
-// ==========================================
+// ============================================================================
+// 3. ENTERPRISE DASHBOARD SCREEN (MAIN MULTI-VIEW COMMAND CENTER)
+// ============================================================================
 
 class EnterpriseDashboardScreen extends StatefulWidget {
   const EnterpriseDashboardScreen({super.key});
@@ -75,7 +97,7 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
   double walletBalance = 2450.00;
   bool isSystemArmed = true;
   bool isAnalyzingAI = false;
-  final Map<String, VlcPlayerController> _vlcControllers = {};
+  final Map _vlcControllers = {};
 
   @override
   void initState() {
@@ -83,9 +105,12 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
     _initializeRTSPStreams();
   }
 
+  // Initialize and manage VLC RTSP Network Streams safely
   void _initializeRTSPStreams() {
     for (var controller in _vlcControllers.values) {
-      controller.dispose();
+      try {
+        controller.dispose();
+      } catch (_) {}
     }
     _vlcControllers.clear();
 
@@ -104,7 +129,7 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
             ),
           );
         } catch (e) {
-          debugPrint("RTSP Init Error ($camName): $e");
+          debugPrint("RTSP Stream Connection Error for $camName: $e");
         }
       }
     });
@@ -114,15 +139,17 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
   @override
   void dispose() {
     for (var controller in _vlcControllers.values) {
-      controller.dispose();
+      try {
+        controller.dispose();
+      } catch (_) {}
     }
     super.dispose();
   }
 
-  // 👁️ GROQ AI VISION SCANNER (WITH TRANSPARENT ERROR REPORTING)
+  // 👁️ GROQ AI VISION SCANNER WITH TRANSPARENT DIAGNOSTIC ERROR OUTPUT
   Future<void> triggerGroqVisionScan(String cameraName) async {
     if (walletBalance < 0.75) {
-      _showAppSnackBar('⚠️ Insufficient Wallet Balance! Please Top-Up.', Colors.orange);
+      _showAppSnackBar('⚠️ Insufficient Wallet Balance! Please Top-Up ₹500.', Colors.orange);
       return;
     }
 
@@ -136,14 +163,14 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
     });
 
     try {
-      VlcPlayerController? controller = _vlcControllers[cameraName];
+      dynamic controller = _vlcControllers[cameraName];
       if (controller == null || !controller.value.isInitialized) {
-        throw Exception("Camera stream '$cameraName' is offline or uninitialized.");
+        throw Exception("Camera stream '$cameraName' is offline, uninitialized, or connection failed.");
       }
 
       var imageBytes = await controller.takeSnapshot();
       if (imageBytes.isEmpty) {
-        throw Exception("Failed to capture frame snapshot from RTSP feed.");
+        throw Exception("Failed to capture image frame snapshot from RTSP feed.");
       }
 
       String base64Image = base64Encode(imageBytes);
@@ -176,9 +203,9 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
       String aiTextResponse = "";
       if (response.statusCode == 200) {
         final responseData = jsonDecode(response.body);
-        aiTextResponse = responseData['choices']?[0]['message']?['content'] ?? "No Threats Detected.";
+        aiTextResponse = responseData['choices']?[0]['message']?['content'] ?? "No Threats Detected in Frame.";
       } else {
-        throw Exception("Groq HTTP ${response.statusCode}: ${response.body}");
+        throw Exception("Groq Server HTTP ${response.statusCode}: ${response.body}");
       }
 
       String timeStamp = DateTime.now().millisecondsSinceEpoch.toString();
@@ -189,13 +216,13 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
         globalEnterpriseLogs.insert(0, {
           "time": _getCurrentFormattedTime(),
           "camera": cameraName,
-          "event": "🤖 Vision AI: $aiTextResponse",
+          "event": "🤖 AI Vision Scan: $aiTextResponse",
           "videoPath": localSavedPath,
           "level": "High"
         });
       });
 
-      _showAppSnackBar('🚨 Vision Scan Completed Successfully!', Colors.green);
+      _showAppSnackBar('🚨 AI Vision Scan Completed Successfully!', Colors.green);
     } catch (e) {
       _showAppSnackBar('❌ AI Scan Failed: $e', Colors.red, durationSeconds: 6);
     } finally {
@@ -209,7 +236,7 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
     setState(() {
       walletBalance += 500.0;
     });
-    _showAppSnackBar('✅ Added ₹500.00 to AI Credits Wallet', Colors.lightBlue);
+    _showAppSnackBar('✅ Successfully Added ₹500.00 to AI Credits Wallet.', Colors.lightBlue);
   }
 
   void toggleSystemArming() {
@@ -217,7 +244,7 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
       isSystemArmed = !isSystemArmed;
     });
     _showAppSnackBar(
-      isSystemArmed ? '🔒 Security System ARMED' : '🔓 Security System DISARMED',
+      isSystemArmed ? '🔒 Security System ARMED & Active' : '🔓 Security System Disarmed',
       isSystemArmed ? Colors.green : Colors.amber,
     );
   }
@@ -242,16 +269,16 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: const Color(0xFF1E1B4B),
-        elevation: 4,
+        elevation: 6,
         title: Row(
           children: [
-            const Icon(Icons.shield_rounded, color: Colors.amberAccent, size: 24),
+            const Icon(Icons.shield_rounded, color: Colors.amberAccent, size: 26),
             const SizedBox(width: 10),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text('Family Care VIP Command Center', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
-                Text(isSystemArmed ? 'STATUS: ARMED & PROTECTED' : 'STATUS: DISARMED', style: TextStyle(color: isSystemArmed ? Colors.greenAccent : Colors.orangeAccent, fontSize: 9)),
+                Text(isSystemArmed ? 'STATUS: ARMED & SECURE' : 'STATUS: DISARMED', style: TextStyle(color: isSystemArmed ? Colors.greenAccent : Colors.orangeAccent, fontSize: 9, fontWeight: FontWeight.w600)),
               ],
             ),
           ],
@@ -281,6 +308,8 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
         ],
       ),
       body: RefreshIndicator(
+        color: Colors.amberAccent,
+        backgroundColor: const Color(0xFF1E1B4B),
         onRefresh: () async {
           _initializeRTSPStreams();
         },
@@ -290,7 +319,7 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // --- WALLET & THREAT SUMMARY METRICS ---
+              // --- ENTERPRISE WALLET & SYSTEM METRICS BANNER ---
               Container(
                 padding: const EdgeInsets.all(18.0),
                 decoration: BoxDecoration(
@@ -310,7 +339,7 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(isAnalyzingAI ? 'AI PROCESSING SNAPSHOT...' : 'ACTIVE AI CREDITS WALLET', style: const TextStyle(fontSize: 10, color: Colors.amberAccent, fontWeight: FontWeight.bold)),
+                            Text(isAnalyzingAI ? 'AI SCANNING IN PROGRESS...' : 'ACTIVE AI CREDITS WALLET', style: const TextStyle(fontSize: 10, color: Colors.amberAccent, fontWeight: FontWeight.bold)),
                             const SizedBox(height: 6),
                             Text('₹${walletBalance.toStringAsFixed(2)}', style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w800, color: Colors.white)),
                           ],
@@ -350,7 +379,7 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
               ),
               const SizedBox(height: 12),
 
-              // --- CAMERA GRID DISPLAY ---
+              // --- CAMERA FEED MULTI-VIEW GRID ---
               globalEnterpriseCameras.isEmpty
                   ? Container(
                       width: double.infinity,
@@ -362,7 +391,7 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
                           SizedBox(height: 12),
                           Text('No Active RTSP Nodes Configured', textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                           SizedBox(height: 6),
-                          Text('Tap the Gear icon (⚙️) on top right to add RTSP camera links.', textAlign: TextAlign.center, style: TextStyle(color: Colors.white54, fontSize: 11)),
+                          Text('Tap the Settings icon (⚙️) on top right to add RTSP streams.', textAlign: TextAlign.center, style: TextStyle(color: Colors.white54, fontSize: 11)),
                         ],
                       ),
                     )
@@ -378,7 +407,7 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
                       itemCount: globalEnterpriseCameras.length,
                       itemBuilder: (context, index) {
                         String camName = globalEnterpriseCameras.keys.elementAt(index);
-                        VlcPlayerController? controller = _vlcControllers[camName];
+                        dynamic controller = _vlcControllers[camName];
                         return Container(
                           decoration: BoxDecoration(
                             color: Colors.black,
@@ -397,7 +426,7 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
                                           children: [
                                             CircularProgressIndicator(strokeWidth: 2),
                                             SizedBox(height: 8),
-                                            Text('Initializing RTSP...', style: TextStyle(color: Colors.white54, fontSize: 10)),
+                                            Text('Connecting RTSP...', style: TextStyle(color: Colors.white54, fontSize: 10)),
                                           ],
                                         ),
                                 ),
@@ -468,14 +497,14 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
                       padding: const EdgeInsets.all(20),
                       width: double.infinity,
                       decoration: BoxDecoration(color: const Color(0xFF1E293B), borderRadius: BorderRadius.circular(12)),
-                      child: const Center(child: Text('No Logs Available.', style: TextStyle(color: Colors.white54, fontSize: 12))),
+                      child: const Center(child: Text('No Threat Logs Recorded Yet.', style: TextStyle(color: Colors.white54, fontSize: 12))),
                     )
                   : ListView.builder(
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
                       itemCount: globalEnterpriseLogs.length,
                       itemBuilder: (context, index) {
-                        Map<String, String> log = globalEnterpriseLogs[index];
+                        Map log = globalEnterpriseLogs[index];
                         return Container(
                           margin: const EdgeInsets.only(bottom: 10),
                           padding: const EdgeInsets.all(12),
@@ -533,9 +562,9 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
   }
 }
 
-// ==========================================
-// 4. AI CHAT & SEARCH ENGINE SCREEN
-// ==========================================
+// ============================================================================
+// 4. AI CHAT & SEARCH ENGINE SCREEN (INTELLIGENCE HUB)
+// ============================================================================
 
 class AiVideoChatSearchScreen extends StatefulWidget {
   const AiVideoChatSearchScreen({super.key});
@@ -546,7 +575,7 @@ class AiVideoChatSearchScreen extends StatefulWidget {
 
 class _AiVideoChatSearchScreenState extends State<AiVideoChatSearchScreen> {
   final TextEditingController _queryController = TextEditingController();
-  final List> _chatMessages = [];
+  final List _chatMessages = [];
   bool _isSearching = false;
 
   // 💬 CHAT SCANNER WITH DIRECT TRANSPARENT ERROR DISPLAY
@@ -555,7 +584,7 @@ class _AiVideoChatSearchScreenState extends State<AiVideoChatSearchScreen> {
 
     if (globalGroqApiKey.trim().isEmpty) {
       setState(() {
-        _chatMessages.add({'sender': 'ai', 'message': '❌ API Key missing! Set it in Settings (⚙️).'});
+        _chatMessages.add({'sender': 'ai', 'message': '❌ API Key missing! Set it in System Settings (⚙️).'});
       });
       return;
     }
@@ -593,7 +622,7 @@ class _AiVideoChatSearchScreenState extends State<AiVideoChatSearchScreen> {
       String aiReply = "";
       if (response.statusCode == 200) {
         final responseData = jsonDecode(response.body);
-        aiReply = responseData['choices']?[0]['message']?['content'] ?? "No response generated.";
+        aiReply = responseData['choices']?[0]['message']?['content'] ?? "No response generated by model.";
       } else {
         aiReply = "❌ Groq Server Error (${response.statusCode}):\n${response.body}";
       }
@@ -621,7 +650,7 @@ class _AiVideoChatSearchScreenState extends State<AiVideoChatSearchScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text('AI Security Intelligence Chat', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
-            Text('Model Engine: $activeChatModel', style: const TextStyle(color: Colors.cyanAccent, fontSize: 9)),
+            Text('Active Chat Model: $activeChatModel', style: const TextStyle(color: Colors.cyanAccent, fontSize: 9)),
           ],
         ),
         backgroundColor: const Color(0xFF1E1B4B),
@@ -680,7 +709,7 @@ class _AiVideoChatSearchScreenState extends State<AiVideoChatSearchScreen> {
                     controller: _queryController,
                     style: const TextStyle(color: Colors.white, fontSize: 13),
                     decoration: InputDecoration(
-                      hintText: 'Ask Groq AI about past threats...',
+                      hintText: 'Ask Groq AI about security status...',
                       hintStyle: const TextStyle(color: Colors.white38, fontSize: 12),
                       filled: true,
                       fillColor: const Color(0xFF0F172A),
@@ -704,9 +733,9 @@ class _AiVideoChatSearchScreenState extends State<AiVideoChatSearchScreen> {
   }
 }
 
-// ==========================================
-// 5. SYSTEM CONFIGURATION & PROMPT SETTINGS
-// ==========================================
+// ============================================================================
+// 5. SYSTEM CONFIGURATION & PROMPT SETTINGS SCREEN
+// ============================================================================
 
 class EnterpriseSettingsScreen extends StatefulWidget {
   const EnterpriseSettingsScreen({super.key});
@@ -740,7 +769,7 @@ class _EnterpriseSettingsScreenState extends State<EnterpriseSettingsScreen> {
     }
 
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('✅ Configuration & AI Prompts Saved!'), backgroundColor: Colors.green),
+      const SnackBar(content: Text('✅ Configuration & AI Prompts Saved Successfully!'), backgroundColor: Colors.green),
     );
     Navigator.pop(context);
   }
