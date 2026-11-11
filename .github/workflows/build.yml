@@ -1,10 +1,13 @@
 name: Family Care AI CI/CD Build Pipeline
+
 on: [push]
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
       - name: Set up Java
         uses: actions/setup-java@v3
@@ -21,17 +24,15 @@ jobs:
       - name: Get Dependencies
         run: flutter pub get
 
-      - name: Fix Android V2 Embedding & Manifest
+      - name: Fix Android V2 and Manifest
         run: |
-          # Agar android folder nahi hai ya v1 hai, toh yeh use v2 ke sath fresh bana dega
           rm -rf android
           flutter create . --platforms=android --org com.familycare.ai
           
-          # Manifest file mein turant internet aur camera permission inject kar dega
           MANIFEST_PATH="android/app/src/main/AndroidManifest.xml"
           if [ -f "$MANIFEST_PATH" ]; then
             sed -i 's/<application/<uses-permission android:name="android.permission.INTERNET"\/>\n    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"\/>\n    <uses-permission android:name="android.permission.CAMERA"\/>\n    <application/' "$MANIFEST_PATH"
-            echo "Permissions injected successfully into AndroidManifest.xml!"
+            echo "Permissions injected successfully!"
           fi
 
       - name: Build APK
@@ -40,7 +41,7 @@ jobs:
           ORG_GRADLE_PROJECT_jvmargs: "-Xmx4g -XX:MaxMetaspaceSize=512m"
 
       - name: Upload APK Artifact
-        uses: upload-artifact@v4
+        uses: actions/upload-artifact@v4
         with:
           name: app-release-apk
           path: build/app/outputs/flutter-apk/app-release.apk
