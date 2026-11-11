@@ -102,10 +102,13 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
   @override
   void initState() {
     super.initState();
-    _initializeRTSPStreams();
+    // क्रैश रोकने के लिए स्ट्रीम्स को थोड़ा डिले देकर सुरक्षित रूप से लोड करेंगे
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _initializeRTSPStreams();
+    });
   }
 
-  // Initialize and manage VLC RTSP Network Streams safely
+  // Safe RTSP Stream Initializer to prevent launch crashes
   void _initializeRTSPStreams() {
     for (var controller in _vlcControllers.values) {
       try {
@@ -133,7 +136,7 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
         }
       }
     });
-    setState(() {});
+    if (mounted) setState(() {});
   }
 
   @override
