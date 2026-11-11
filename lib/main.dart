@@ -3,7 +3,6 @@ import 'package:flutter_vlc_player/flutter_vlc_player.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:async';
-import 'dart:io';
 
 // ==========================================
 // 1. GLOBAL STATE & ENTERPRISE CONSTANTS
@@ -179,7 +178,6 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
         final responseData = jsonDecode(response.body);
         aiTextResponse = responseData['choices']?[0]['message']?['content'] ?? "No Threats Detected.";
       } else {
-        // Direct Server Diagnostic Error Output
         throw Exception("Groq HTTP ${response.statusCode}: ${response.body}");
       }
 
@@ -314,7 +312,7 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
                           children: [
                             Text(isAnalyzingAI ? 'AI PROCESSING SNAPSHOT...' : 'ACTIVE AI CREDITS WALLET', style: const TextStyle(fontSize: 10, color: Colors.amberAccent, fontWeight: FontWeight.bold)),
                             const SizedBox(height: 6),
-                            Text('₹${walletBalance.toStringAsFixed(2)}', style: const TextStyle(fontSize: 26, fontWeight: FontWeight.extrabold, color: Colors.white)),
+                            Text('₹${walletBalance.toStringAsFixed(2)}', style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w800, color: Colors.white)),
                           ],
                         ),
                         ElevatedButton.icon(
@@ -435,7 +433,7 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
                                       children: const [
                                         Icon(Icons.remove_red_eye_rounded, color: Colors.white, size: 12),
                                         SizedBox(width: 4),
-                                        Text('AI SCAN', style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.extrabold)),
+                                        Text('AI SCAN', style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w800)),
                                       ],
                                     ),
                                   ),
@@ -597,7 +595,6 @@ class _AiVideoChatSearchScreenState extends State<AiVideoChatSearchScreen> {
         final responseData = jsonDecode(response.body);
         aiReply = responseData['choices']?[0]['message']?['content'] ?? "No response generated.";
       } else {
-        // Direct Server Diagnostic Error Message Output
         aiReply = "❌ Groq Server Error (${response.statusCode}):\n${response.body}";
       }
 
