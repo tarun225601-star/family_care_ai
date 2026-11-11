@@ -9,6 +9,30 @@ Map globalEnterpriseCameras = {};
 String globalCustomAIPrompt = "Scan this video frame carefully. Detect any security threat such as unauthorized intruders, forced entry, smoke/fire, or unattended children near stairs.";
 String globalGeminiApiKey = "";
 
+// 20+ मॉडल्स की लिस्ट और डिफ़ॉल्ट सेलेक्टेड मॉडल
+String globalSelectedGeminiModel = 'gemini-1.5-flash';
+
+final List<String> availableGeminiModels = [
+  'gemini-1.5-flash',
+  'gemini-1.5-flash-latest',
+  'gemini-1.5-pro',
+  'gemini-1.5-pro-latest',
+  'gemini-pro',
+  'gemini-pro-vision',
+  'gemini-1.0-pro',
+  'gemini-1.0-pro-vision',
+  'chat-bison-001',
+  'text-bison-001',
+  'gemini-ultra',
+  'gemini-1.5-flash-001',
+  'gemini-1.5-pro-001',
+  'gemini-2.0-flash-exp',
+  'gemini-2.0-flash',
+  'gemini-2.0-flash-thinking-exp',
+  'embedding-001',
+  'aqa',
+];
+
 List globalEnterpriseLogs = [];
 
 void main() {
@@ -117,8 +141,9 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
       var imageBytes = await controller.takeSnapshot();
       String base64Image = base64Encode(imageBytes);
 
+      // यहाँ अब globalSelectedGeminiModel इस्तेमाल हो रहा है
       final url = Uri.parse(
-          'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=$globalGeminiApiKey');
+          'https://generativelanguage.googleapis.com/v1beta/models/$globalSelectedGeminiModel:generateContent?key=$globalGeminiApiKey');
 
       final response = await http.post(
         url,
@@ -152,7 +177,7 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
           globalEnterpriseLogs.insert(0, {
             "time": "Just now",
             "camera": cameraName,
-            "event": "🤖 Gemini AI Response: $aiTextResponse",
+            "event": "🤖 Gemini AI ($globalSelectedGeminiModel): $aiTextResponse",
             "videoPath": localSavedPath,
             "level": "High"
           });
@@ -160,18 +185,18 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('🚨 AI Scan Completed & Evidence Locked: $localSavedPath'),
+            content: Text('🚨 AI Scan Completed ($globalSelectedGeminiModel): $localSavedPath'),
             backgroundColor: Colors.redAccent,
             behavior: SnackBarBehavior.floating,
           ),
         );
       } else {
-        throw Exception("Gemini API Error: ${response.statusCode}");
+        throw Exception("Gemini API Error (${response.statusCode}): ${response.body}");
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('❌ AI Scan Failed: Real camera connection required'),
+        SnackBar(
+          content: Text('❌ AI Scan Failed: $e'),
           backgroundColor: Colors.red,
           behavior: SnackBarBehavior.floating,
         ),
@@ -242,6 +267,7 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
                 MaterialPageRoute(builder: (context) => const EnterpriseSettingsScreen()),
               );
               _initializeRTSPStreams();
+              setState(() {});
             },
           ),
         ],
@@ -491,15 +517,16 @@ class _AiVideoChatSearchScreenState extends State<AiVideoChatSearchScreen> {
   final List _chatMessages = [];
   bool _isSearching = false;
 
-    Future<void> _performAiVideoSearch(String query) async {
+  Future<void> _performAiVideoSearch(String query) async {
     setState(() {
       _chatMessages.add({'sender': 'user', 'message': query});
       _isSearching = true;
     });
 
     try {
+      // यहाँ भी globalSelectedGeminiModel का इस्तेमाल किया गया है
       final url = Uri.parse(
-          'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=$globalGeminiApiKey');
+          'https://generativelanguage.googleapis.com/v1beta/models/$globalSelectedGeminiModel:generateContent?key=$globalGeminiApiKey');
 
       final response = await http.post(
         url,
@@ -526,7 +553,6 @@ class _AiVideoChatSearchScreenState extends State<AiVideoChatSearchScreen> {
           _isSearching = false;
         });
       } else {
-        // यह लाइन गूगल के सर्वर से आया हुआ असली एरर कोड और मैसेज सीधा स्क्रीन पर दिखा देगी
         setState(() {
           _chatMessages.add({
             'sender': 'ai', 
@@ -709,6 +735,43 @@ class _EnterpriseSettingsScreenState extends State<EnterpriseSettingsScreen> {
             ),
           ),
           const SizedBox(height: 20),
+
+          // --- यहाँ ड्रॉपडाउन मेनू जोड़ा गया है ---
+          const Text(
+            'Select Gemini AI Model (20+ Models Available):',
+            style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white),
+          ),
+          const SizedBox(height: 6),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1E293B),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.white24),
+            ),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<String>(
+                value: globalSelectedGeminiModel,
+                isExpanded: true,
+                dropdownColor: const Color(0xFF1E293B),
+                style: const TextStyle(color: Colors.white, fontSize: 13),
+                items: availableGeminiModels.map((String model) {
+                  return DropdownMenuItem<String>(
+                    value: model,
+                    child: Text(model, style: const TextStyle(color: Colors.white)),
+                  );
+                }).toList(),
+                onChanged: (String? newValue) {
+                  setState(() {
+                    globalSelectedGeminiModel = newValue!;
+                  });
+                },
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+          // ------------------------------------
+
           const Text(
             'Custom AI Detection Prompt:',
             style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white),
