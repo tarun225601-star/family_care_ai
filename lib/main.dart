@@ -8,24 +8,7 @@ import 'dart:async';
 // 1. GLOBAL ENTERPRISE STATE & CONFIGURATION CONSTANTS
 // ============================================================================
 
-Map globalEnterpriseCameras = {
-  "Main Gate Entrance": {
-    "active": true,
-    "ip": "rtsp://192.168.1.100:554/stream1"
-  },
-  "Backyard Perimeter": {
-    "active": true,
-    "ip": "rtsp://192.168.1.101:554/stream1"
-  },
-  "Living Room Staircase": {
-    "active": true,
-    "ip": "rtsp://192.168.1.102:554/stream1"
-  },
-  "Garage & Parking": {
-    "active": true,
-    "ip": "rtsp://192.168.1.103:554/stream1"
-  }
-};
+Map globalEnterpriseCameras = {};
 
 String globalCustomAIPrompt = 
     "Scan this video frame carefully for the Family Care Security Hub. "
@@ -42,7 +25,7 @@ List globalEnterpriseLogs = [
   {
     "time": "System Boot",
     "camera": "Master Hub",
-    "event": "🛡️ Enterprise Security Hub Initialized Successfully in Armed Mode.",
+    "event": "🛡️ Enterprise Security Hub Initialized Successfully in Safe Mode.",
     "videoPath": "N/A",
     "level": "Info"
   }
@@ -102,13 +85,11 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
   @override
   void initState() {
     super.initState();
-    // क्रैश रोकने के लिए स्ट्रीम्स को थोड़ा डिले देकर सुरक्षित रूप से लोड करेंगे
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _initializeRTSPStreams();
     });
   }
 
-  // Safe RTSP Stream Initializer to prevent launch crashes
   void _initializeRTSPStreams() {
     for (var controller in _vlcControllers.values) {
       try {
@@ -168,7 +149,7 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
     try {
       dynamic controller = _vlcControllers[cameraName];
       if (controller == null || !controller.value.isInitialized) {
-        throw Exception("Camera stream '$cameraName' is offline, uninitialized, or connection failed.");
+        throw Exception("Camera stream '$cameraName' is offline or uninitialized.");
       }
 
       var imageBytes = await controller.takeSnapshot();
@@ -394,7 +375,7 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
                           SizedBox(height: 12),
                           Text('No Active RTSP Nodes Configured', textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                           SizedBox(height: 6),
-                          Text('Tap the Settings icon (⚙️) on top right to add RTSP streams.', textAlign: TextAlign.center, style: TextStyle(color: Colors.white54, fontSize: 11)),
+                          Text('Tap the Settings icon (⚙️) on top right to add your RTSP IP link.', textAlign: TextAlign.center, style: TextStyle(color: Colors.white54, fontSize: 11)),
                         ],
                       ),
                     )
@@ -773,7 +754,7 @@ class _EnterpriseSettingsScreenState extends State<EnterpriseSettingsScreen> {
     }
 
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('✅ Configuration & AI Prompts Saved Successfully!'), backgroundColor: Colors.green),
+      const SnackBar(content: Text('✅ Configuration & RTSP Node Saved Successfully!'), backgroundColor: Colors.green),
     );
     Navigator.pop(context);
   }
@@ -859,7 +840,7 @@ class _EnterpriseSettingsScreenState extends State<EnterpriseSettingsScreen> {
           ),
           const SizedBox(height: 22),
 
-          const Text('Add RTSP Camera Node', style: TextStyle(color: Colors.amberAccent, fontWeight: FontWeight.bold, fontSize: 13)),
+          const Text('Add RTSP Camera Node Manually', style: TextStyle(color: Colors.amberAccent, fontWeight: FontWeight.bold, fontSize: 13)),
           const SizedBox(height: 8),
           TextField(
             controller: _nodeNameController,
