@@ -17,9 +17,9 @@ String globalCustomAIPrompt =
 
 String globalGroqApiKey = "";
 
-// ViziaHub पर वेरीफाइड वर्किंग मॉडल
+// Default Active Models
 String activeChatModel = "qwen/qwen3.8-27b";
-String activeVisionModel = "qwen/qwen3.8-27b";
+String activeVisionModel = "llama-3.2-11b-vision-preview";
 
 List globalEnterpriseLogs = [
   {
@@ -130,7 +130,7 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
     super.dispose();
   }
 
-  // 👁️ AI VISION SCANNER WITH VERIFIED WORKING MODEL
+  // 👁️ AI VISION SCANNER WITH TRUE VISION MODEL
   Future<void> triggerGroqVisionScan(String cameraName) async {
     if (walletBalance < 0.75) {
       _showAppSnackBar('⚠️ Insufficient Wallet Balance! Please Top-Up ₹500.', Colors.orange);
@@ -346,7 +346,7 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
                       children: [
                         _buildMetricChip(Icons.videocam_rounded, "${globalEnterpriseCameras.length} Nodes", "RTSP Feeds"),
                         _buildMetricChip(Icons.security_rounded, "${globalEnterpriseLogs.length} Events", "Logged"),
-                        _buildMetricChip(Icons.memory_rounded, activeVisionModel.split('/').last.toUpperCase(), "Vision Engine"),
+                        _buildMetricChip(Icons.memory_rounded, activeVisionModel.split('/').last.split('-').first.toUpperCase(), "Vision Engine"),
                       ],
                     ),
                   ],
@@ -562,7 +562,7 @@ class _AiVideoChatSearchScreenState extends State<AiVideoChatSearchScreen> {
   final List _chatMessages = [];
   bool _isSearching = false;
 
-  // 💬 CHAT SCANNER WITH VERIFIED WORKING MODEL
+  // 💬 CHAT SCANNER WITH CHAT MODEL
   Future<void> _performSmartChatSearch(String query) async {
     if (query.trim().isEmpty) return;
 
@@ -693,7 +693,7 @@ class _AiVideoChatSearchScreenState extends State<AiVideoChatSearchScreen> {
                     controller: _queryController,
                     style: const TextStyle(color: Colors.white, fontSize: 13),
                     decoration: InputDecoration(
-                      hintText: 'Ask Groq AI about security status...',
+                      hintText: 'Ask AI about security status...',
                       hintStyle: const TextStyle(color: Colors.white38, fontSize: 12),
                       filled: true,
                       fillColor: const Color(0xFF0F172A),
@@ -785,7 +785,7 @@ class _EnterpriseSettingsScreenState extends State<EnterpriseSettingsScreen> {
 
           const Text('Target Model Configurations', style: TextStyle(color: Colors.amberAccent, fontWeight: FontWeight.bold, fontSize: 13)),
           const SizedBox(height: 8),
-          // Chat Model Dropdown (Verified ViziaHub Working Models)
+          // Chat Model Dropdown (2 Verified Chat Models)
           DropdownButtonFormField<String>(
             value: activeChatModel,
             dropdownColor: const Color(0xFF1E293B),
@@ -805,7 +805,7 @@ class _EnterpriseSettingsScreenState extends State<EnterpriseSettingsScreen> {
             },
           ),
           const SizedBox(height: 12),
-          // Vision Model Dropdown (Verified Working Vision Model)
+          // Vision Model Dropdown (2 Vision Models)
           DropdownButtonFormField<String>(
             value: activeVisionModel,
             dropdownColor: const Color(0xFF1E293B),
@@ -817,7 +817,8 @@ class _EnterpriseSettingsScreenState extends State<EnterpriseSettingsScreen> {
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
             ),
             items: const [
-              DropdownMenuItem(value: 'qwen/qwen3.8-27b', child: Text('qwen/qwen3.8-27b (Verified Vision Engine)')),
+              DropdownMenuItem(value: 'llama-3.2-11b-vision-preview', child: Text('llama-3.2-11b-vision-preview (Standard Vision)')),
+              DropdownMenuItem(value: 'llama-3.2-90b-vision-preview', child: Text('llama-3.2-90b-vision-preview (Pro Vision)')),
             ],
             onChanged: (val) {
               if (val != null) setState(() => activeVisionModel = val);
