@@ -14,7 +14,7 @@ import 'dart:io';
 // GLOBAL STATE MANAGEMENT & CONFIGURATIONS
 // ============================================================================
 
-Map<String, dynamic> globalEnterpriseCameras = {};
+Map globalEnterpriseCameras = {};
 
 String globalCustomAIPrompt =
     "Scan this media frame carefully for the Family Care Security Hub. "
@@ -29,7 +29,7 @@ String activeVisionModel = "llama-3.2-11b-vision-preview";
 
 int autoScanIntervalSeconds = 15;
 
-List> globalEnterpriseLogs = [
+List globalEnterpriseLogs = [
   {
     "time": "System Boot",
     "camera": "Enterprise Master Hub",
@@ -91,7 +91,7 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
   bool isAnalyzingAI = false;
   String? _lastPickedFilepath;
 
-  final Map<String, VlcPlayerController> _vlcControllers = {};
+  final Map _vlcControllers = {};
   final ImagePicker _picker = ImagePicker();
 
   @override
@@ -680,7 +680,7 @@ class AiVideoChatSearchScreen extends StatefulWidget {
 
 class _AiVideoChatSearchScreenState extends State<AiVideoChatSearchScreen> {
   final TextEditingController _queryController = TextEditingController();
-  final List> _chatHistory = [
+  final List _chatHistory = [
     {
       "role": "assistant",
       "content": "Hello! Ask me anything about your captured security audit logs, threat timestamps, or gallery video scan analyses."
