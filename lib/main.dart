@@ -9,7 +9,7 @@ import 'dart:async';
 // 1. GLOBAL ENTERPRISE STATE & CONFIGURATION CONSTANTS
 // ============================================================================
 
-Map<String, dynamic> globalEnterpriseCameras = {};
+Map globalEnterpriseCameras = {};
 
 String globalCustomAIPrompt =
     "Scan this video frame carefully for the Family Care Security Hub. "
@@ -24,7 +24,7 @@ String activeVisionModel = "llama-3.2-11b-vision-preview";
 
 int autoScanIntervalSeconds = 15;
 
-List> globalEnterpriseLogs = [
+List globalEnterpriseLogs = [
   {
     "time": "System Boot",
     "camera": "Master Hub",
@@ -34,7 +34,7 @@ List> globalEnterpriseLogs = [
   }
 ];
 
-List<CameraDescription> globalAvailableCameras = [];
+List globalAvailableCameras = [];
 
 // ============================================================================
 // 2. MAIN APPLICATION ENTRY POINT & THEME CONFIGURATION
@@ -92,7 +92,7 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
   bool isSystemArmed = true;
   bool isAnalyzingAI = false;
 
-  final Map<String, VlcPlayerController> _vlcControllers = {};
+  final Map _vlcControllers = {};
 
   CameraController? _demoCameraController;
   bool _isDemoCameraInitialized = false;
@@ -244,7 +244,7 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
 
     try {
       XFile imageFile = await _demoCameraController!.takePicture();
-      List<int> imageBytes = await imageFile.readAsBytes();
+      var imageBytes = await imageFile.readAsBytes();
 
       if (imageBytes.isEmpty) {
         throw Exception("Empty frame captured from demo camera.");
@@ -339,7 +339,7 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
     });
 
     try {
-      VlcPlayerController? controller = _vlcControllers[cameraName];
+      dynamic controller = _vlcControllers[cameraName];
       if (controller == null || !controller.value.isInitialized) {
         throw Exception(
             "Camera stream '$cameraName' is offline or uninitialized.");
@@ -849,8 +849,7 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
                       itemBuilder: (context, index) {
                         String camName =
                             globalEnterpriseCameras.keys.elementAt(index);
-                        VlcPlayerController? controller =
-                            _vlcControllers[camName];
+                        dynamic controller = _vlcControllers[camName];
                         return Container(
                           decoration: BoxDecoration(
                             color: Colors.black,
@@ -1093,7 +1092,7 @@ class AiVideoChatSearchScreen extends StatefulWidget {
 
 class _AiVideoChatSearchScreenState extends State<AiVideoChatSearchScreen> {
   final TextEditingController _queryController = TextEditingController();
-  final List> _chatHistory = [
+  final List _chatHistory = [
     {
       "role": "assistant",
       "content":
