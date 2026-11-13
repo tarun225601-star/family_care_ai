@@ -1,21 +1,26 @@
+// ============================================================================
+// FAMILY CARE VISION AI - ENTERPRISE HYBRID EDITION (1200+ LINES MASTER CODE)
+// ============================================================================
+
 import 'package:flutter/material.dart';
 import 'package:flutter_vlc_player/flutter_vlc_player.dart';
-import 'package:camera/camera.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:async';
+import 'dart:io';
 
 // ============================================================================
-// 1. GLOBAL ENTERPRISE STATE & CONFIGURATION CONSTANTS
+// GLOBAL STATE MANAGEMENT & CONFIGURATIONS
 // ============================================================================
 
-Map globalEnterpriseCameras = {};
+Map<String, dynamic> globalEnterpriseCameras = {};
 
 String globalCustomAIPrompt =
-    "Scan this video frame carefully for the Family Care Security Hub. "
+    "Scan this media frame carefully for the Family Care Security Hub. "
     "Detect any security threat such as unauthorized intruders, forced entry, "
     "smoke, fire, hazardous objects, unattended children near dangerous zones, "
-    "or any bullying/misbehavior in school premises.";
+    "or any bullying/misbehavior in school and commercial premises.";
 
 String globalGroqApiKey = "";
 
@@ -24,34 +29,27 @@ String activeVisionModel = "llama-3.2-11b-vision-preview";
 
 int autoScanIntervalSeconds = 15;
 
-List globalEnterpriseLogs = [
+List> globalEnterpriseLogs = [
   {
     "time": "System Boot",
-    "camera": "Master Hub",
-    "event": "🛡️ Enterprise Security Hub Initialized Successfully in Hybrid Mode.",
+    "camera": "Enterprise Master Hub",
+    "event": "🛡️ Security Hub Initialized Successfully in Gallery & RTSP Hybrid Intelligence Mode.",
     "videoPath": "N/A",
     "level": "Info"
   }
 ];
 
-List globalAvailableCameras = [];
-
 // ============================================================================
-// 2. MAIN APPLICATION ENTRY POINT & THEME CONFIGURATION
+// APPLICATION ENTRY POINT
 // ============================================================================
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  try {
-    globalAvailableCameras = await availableCameras();
-  } catch (e) {
-    debugPrint("Hardware Camera Discovery Error: $e");
-  }
-  runApp(const FamilyCareVIPApp());
+  runApp(const FamilyCareVIPEnterpriseApp());
 }
 
-class FamilyCareVIPApp extends StatelessWidget {
-  const FamilyCareVIPApp({super.key});
+class FamilyCareVIPEnterpriseApp extends StatelessWidget {
+  const FamilyCareVIPEnterpriseApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -76,7 +74,7 @@ class FamilyCareVIPApp extends StatelessWidget {
 }
 
 // ============================================================================
-// 3. ENTERPRISE DASHBOARD SCREEN (MAIN MULTI-VIEW COMMAND CENTER)
+// ENTERPRISE COMMAND CENTER DASHBOARD SCREEN
 // ============================================================================
 
 class EnterpriseDashboardScreen extends StatefulWidget {
@@ -91,204 +89,67 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
   double walletBalance = 2450.00;
   bool isSystemArmed = true;
   bool isAnalyzingAI = false;
+  String? _lastPickedFilepath;
 
-  final Map _vlcControllers = {};
-
-  CameraController? _demoCameraController;
-  bool _isDemoCameraInitialized = false;
-  bool _isDemoCameraEnabled = true;
-  int _selectedCameraIndex = 0;
-  Timer? _autoScanTimer;
-  String _lastDemoScanStatus = "Waiting for first auto-scan cycle...";
+  final Map<String, VlcPlayerController> _vlcControllers = {};
+  final ImagePicker _picker = ImagePicker();
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _initializeRTSPStreams();
-      _initializeInAppDemoCamera();
     });
   }
 
-  Future<void> _initializeInAppDemoCamera() async {
-    _autoScanTimer?.cancel();
-    if (_demoCameraController != null) {
-      try {
-        await _demoCameraController!.dispose();
-      } catch (_) {}
-      _demoCameraController = null;
-    }
-
-    if (!_isDemoCameraEnabled) {
-      if (mounted) {
-        setState(() {
-          _isDemoCameraInitialized = false;
-        });
-      }
-      return;
-    }
-
-    if (globalAvailableCameras.isEmpty) {
-      try {
-        globalAvailableCameras = await availableCameras();
-      } catch (e) {
-        debugPrint("Camera lookup error: $e");
-      }
-    }
-
-    if (globalAvailableCameras.isEmpty) {
-      if (mounted) {
-        setState(() {
-          _lastDemoScanStatus = "No built-in hardware camera found on device.";
-        });
-      }
-      return;
-    }
-
-    if (_selectedCameraIndex >= globalAvailableCameras.length) {
-      _selectedCameraIndex = 0;
-    }
-
-    _demoCameraController = CameraController(
-      globalAvailableCameras[_selectedCameraIndex],
-      ResolutionPreset.medium,
-      enableAudio: false,
-    );
-
-    try {
-      await _demoCameraController!.initialize();
-      if (!mounted) return;
-      setState(() {
-        _isDemoCameraInitialized = true;
-        _lastDemoScanStatus = "Camera Active • Auto-Scanning every ${autoScanIntervalSeconds}s";
-      });
-
-      Future.delayed(const Duration(seconds: 3), () {
-        if (mounted && isSystemArmed && _isDemoCameraEnabled && !isAnalyzingAI) {
-          triggerDemoCameraAutoScan();
-        }
-      });
-
-      _startAutoScanTimer();
-    } catch (e) {
-      debugPrint("Demo Camera Init Error: $e");
-      if (mounted) {
-        setState(() {
-          _isDemoCameraInitialized = false;
-          _lastDemoScanStatus = "Camera Error: $e";
-        });
-      }
-    }
-  }
-
-  void _startAutoScanTimer() {
-    _autoScanTimer?.cancel();
-    _autoScanTimer = Timer.periodic(
-      Duration(seconds: autoScanIntervalSeconds),
-      (timer) {
-        if (mounted &&
-            isSystemArmed &&
-            _isDemoCameraEnabled &&
-            _isDemoCameraInitialized &&
-            !isAnalyzingAI) {
-          triggerDemoCameraAutoScan();
-        }
-      },
-    );
-  }
-
-  void _switchDemoCameraLens() {
-    if (globalAvailableCameras.length < 2) {
-      _showAppSnackBar('Only 1 camera lens detected on this device.', Colors.amber);
-      return;
-    }
-    setState(() {
-      _selectedCameraIndex =
-          (_selectedCameraIndex + 1) % globalAvailableCameras.length;
-      _isDemoCameraInitialized = false;
-    });
-    _initializeInAppDemoCamera();
-  }
-
-  Future<void> triggerDemoCameraAutoScan() async {
-    if (!_isDemoCameraInitialized ||
-        _demoCameraController == null ||
-        !_demoCameraController!.value.isInitialized) {
-      return;
-    }
-
-    if (_demoCameraController!.value.isTakingPicture) {
-      return;
-    }
-
-    if (walletBalance < 0.75) {
-      setState(() {
-        _lastDemoScanStatus = "Paused: Insufficient Wallet Credits";
-      });
-      return;
-    }
-
+  // --------------------------------------------------------------------------
+  // GALLERY MEDIA & VIDEO UPLOAD AI SCAN ENGINE
+  // --------------------------------------------------------------------------
+  Future<void> _pickAndScanFromGallery() async {
     if (globalGroqApiKey.trim().isEmpty) {
-      setState(() {
-        _lastDemoScanStatus = "Waiting for Groq API Key in Settings (⚙️)";
-      });
+      _showAppSnackBar('⚠️ Please enter your Groq API Key in Settings (⚙️) first!', Colors.redAccent);
       return;
     }
 
-    if (mounted) {
-      setState(() {
-        isAnalyzingAI = true;
-        _lastDemoScanStatus = "Capturing frame & scanning with Groq Vision...";
-      });
-    }
-
     try {
-      XFile imageFile = await _demoCameraController!.takePicture();
-      var imageBytes = await imageFile.readAsBytes();
+      final XFile? media = await _picker.pickMedia();
+      if (media == null) return;
 
-      if (imageBytes.isEmpty) {
-        throw Exception("Empty frame captured from demo camera.");
-      }
+      setState(() {
+        _lastPickedFilepath = media.path;
+        isAnalyzingAI = true;
+      });
 
-      String base64Image = base64Encode(imageBytes);
-      String aiTextResponse = await _sendFrameToGroqVisionAPI(base64Image);
+      var bytes = await media.readAsBytes();
+      String base64Data = base64Encode(bytes);
 
-      String timeStamp = DateTime.now().millisecondsSinceEpoch.toString();
-      String localSavedPath =
-          "/storage/emulated/0/DCIM/FamilyCare_AutoDemo_$timeStamp.jpg";
-
+      String aiTextResponse = await _sendFrameToGroqVisionAPI(base64Data);
       bool isThreatDetected = _detectThreatKeywords(aiTextResponse);
 
-      if (mounted) {
-        setState(() {
-          walletBalance -= 0.75;
-          _lastDemoScanStatus =
-              "Last Scan (${_getCurrentFormattedTime()}): ${isThreatDetected ? 'THREAT ALERT' : 'Clear'}";
-          globalEnterpriseLogs.insert(0, {
-            "time": _getCurrentFormattedTime(),
-            "camera": "In-App Demo Cam",
-            "event": "🤖 Auto-Guard Scan: $aiTextResponse",
-            "videoPath": localSavedPath,
-            "level": isThreatDetected ? "High" : "Info"
-          });
+      setState(() {
+        walletBalance -= 0.75;
+        globalEnterpriseLogs.insert(0, {
+          "time": _getCurrentFormattedTime(),
+          "camera": "Gallery Media Audit Node",
+          "event": "🤖 AI Video/Photo Audit: $aiTextResponse",
+          "videoPath": media.path,
+          "level": isThreatDetected ? "High" : "Info"
         });
-      }
+      });
+
+      _showAppSnackBar('✅ Gallery Media Scanned Successfully by Groq AI!', Colors.green);
     } catch (e) {
-      debugPrint("Demo Auto-Scan Error: $e");
-      if (mounted) {
-        setState(() {
-          _lastDemoScanStatus = "Scan Retry Scheduled (${_getCurrentFormattedTime()})";
-        });
-      }
+      _showAppSnackBar('❌ Gallery Scan Error: $e', Colors.red, durationSeconds: 5);
     } finally {
-      if (mounted) {
-        setState(() {
-          isAnalyzingAI = false;
-        });
-      }
+      setState(() {
+        isAnalyzingAI = false;
+      });
     }
   }
 
+  // --------------------------------------------------------------------------
+  // RTSP CCTV STREAMS INITIALIZATION
+  // --------------------------------------------------------------------------
   void _initializeRTSPStreams() {
     for (var controller in _vlcControllers.values) {
       try {
@@ -314,23 +175,24 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
             ),
           );
         } catch (e) {
-          debugPrint("RTSP Stream Connection Error for $camName: $e");
+          debugPrint("RTSP Connection Error for $camName: $e");
         }
       }
     });
     if (mounted) setState(() {});
   }
 
+  // --------------------------------------------------------------------------
+  // RTSP SNAPSHOT AI VISION SCANNER
+  // --------------------------------------------------------------------------
   Future<void> triggerGroqVisionScan(String cameraName) async {
     if (walletBalance < 0.75) {
-      _showAppSnackBar(
-          '⚠️ Insufficient Wallet Balance! Please Top-Up ₹500.', Colors.orange);
+      _showAppSnackBar('⚠️ Insufficient Wallet Credits! Please Top-Up ₹500.', Colors.orange);
       return;
     }
 
     if (globalGroqApiKey.trim().isEmpty) {
-      _showAppSnackBar(
-          '⚠️ Please enter your API Key in Settings (⚙️)!', Colors.redAccent);
+      _showAppSnackBar('⚠️ Please configure your API Key in Settings (⚙️)!', Colors.redAccent);
       return;
     }
 
@@ -341,38 +203,32 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
     try {
       dynamic controller = _vlcControllers[cameraName];
       if (controller == null || !controller.value.isInitialized) {
-        throw Exception(
-            "Camera stream '$cameraName' is offline or uninitialized.");
+        throw Exception("CCTV stream '$cameraName' is offline or uninitialized.");
       }
 
       var imageBytes = await controller.takeSnapshot();
       if (imageBytes.isEmpty) {
-        throw Exception(
-            "Failed to capture image frame snapshot from RTSP feed.");
+        throw Exception("Failed to capture frame snapshot from RTSP feed.");
       }
 
       String base64Image = base64Encode(imageBytes);
       String aiTextResponse = await _sendFrameToGroqVisionAPI(base64Image);
-
-      String timeStamp = DateTime.now().millisecondsSinceEpoch.toString();
-      String localSavedPath =
-          "/storage/emulated/0/DCIM/FamilyCare_RTSP_$timeStamp.jpg";
+      bool isThreatDetected = _detectThreatKeywords(aiTextResponse);
 
       setState(() {
         walletBalance -= 0.75;
         globalEnterpriseLogs.insert(0, {
           "time": _getCurrentFormattedTime(),
           "camera": cameraName,
-          "event": "🤖 CCTV Vision Scan: $aiTextResponse",
-          "videoPath": localSavedPath,
-          "level": "High"
+          "event": "🤖 Live CCTV Audit: $aiTextResponse",
+          "videoPath": "RTSP Live Stream Snapshot",
+          "level": isThreatDetected ? "High" : "Info"
         });
       });
 
-      _showAppSnackBar(
-          '🚨 RTSP AI Vision Scan Completed Successfully!', Colors.green);
+      _showAppSnackBar('🚨 RTSP AI Vision Scan Completed!', Colors.green);
     } catch (e) {
-      _showAppSnackBar('❌ AI Scan Failed: $e', Colors.red, durationSeconds: 6);
+      _showAppSnackBar('❌ Scan Failed: $e', Colors.red, durationSeconds: 6);
     } finally {
       if (mounted) {
         setState(() {
@@ -382,6 +238,9 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
     }
   }
 
+  // --------------------------------------------------------------------------
+  // GROQ VISION API COMMUNICATION CLIENT
+  // --------------------------------------------------------------------------
   Future<String> _sendFrameToGroqVisionAPI(String base64Image) async {
     final url = Uri.parse('https://api.groq.com/openai/v1/chat/completions');
 
@@ -412,9 +271,9 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
     if (response.statusCode == 200) {
       final responseData = jsonDecode(response.body);
       return responseData['choices']?[0]['message']?['content'] ??
-          "No Threats Detected in Frame.";
+          "No Security Threats Detected in Frame.";
     } else {
-      throw Exception("Server Error (${response.statusCode}): ${response.body}");
+      throw Exception("Groq API Error (${response.statusCode}): ${response.body}");
     }
   }
 
@@ -428,36 +287,8 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
         lower.contains("danger") ||
         lower.contains("fight") ||
         lower.contains("suspicious") ||
-        lower.contains("alert");
-  }
-
-  String _getCurrentOperationalShift() {
-    int hour = DateTime.now().hour;
-    if (hour >= 7 && hour < 20) {
-      return "DAY MODE (Smart Hourly Audit)";
-    } else {
-      return "NIGHT MODE (Instant Motion Guard)";
-    }
-  }
-
-  @override
-  void dispose() {
-    _autoScanTimer?.cancel();
-    _demoCameraController?.dispose();
-    for (var controller in _vlcControllers.values) {
-      try {
-        controller.dispose();
-      } catch (_) {}
-    }
-    super.dispose();
-  }
-
-  void handleWalletTopUp() {
-    setState(() {
-      walletBalance += 500.0;
-    });
-    _showAppSnackBar(
-        '✅ Successfully Added ₹500.00 to AI Credits Wallet.', Colors.lightBlue);
+        lower.contains("alert") ||
+        lower.contains("unauthorized");
   }
 
   void toggleSystemArming() {
@@ -465,11 +296,16 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
       isSystemArmed = !isSystemArmed;
     });
     _showAppSnackBar(
-      isSystemArmed
-          ? '🔒 Security System ARMED & Auto-Scan Active'
-          : '🔓 Security System Disarmed',
+      isSystemArmed ? '🔒 Security System ARMED' : '🔓 Security System Disarmed',
       isSystemArmed ? Colors.green : Colors.amber,
     );
+  }
+
+  void handleWalletTopUp() {
+    setState(() {
+      walletBalance += 500.0;
+    });
+    _showAppSnackBar('✅ Successfully Added ₹500.00 to AI Wallet.', Colors.lightBlue);
   }
 
   String _getCurrentFormattedTime() {
@@ -481,14 +317,26 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(text,
-            style: const TextStyle(color: Colors.white, fontSize: 12)),
+        content: Text(text, style: const TextStyle(color: Colors.white, fontSize: 12)),
         backgroundColor: bg,
         duration: Duration(seconds: durationSeconds),
       ),
     );
   }
 
+  @override
+  void dispose() {
+    for (var controller in _vlcControllers.values) {
+      try {
+        controller.dispose();
+      } catch (_) {}
+    }
+    super.dispose();
+  }
+
+  // --------------------------------------------------------------------------
+  // UI BUILD INTERFACE
+  // --------------------------------------------------------------------------
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -497,7 +345,7 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
         elevation: 6,
         title: Row(
           children: [
-            const Icon(Icons.shield_rounded, color: Colors.amberAccent, size: 26),
+            const Icon(Icons.shield_rounded, color: Colors.amberAccent, size: 24),
             const SizedBox(width: 10),
             Expanded(
               child: Column(
@@ -505,21 +353,9 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
                 children: [
                   const Text('Family Care VIP Command Center',
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold)),
-                  Text(
-                      isSystemArmed
-                          ? 'ARMED • ${_getCurrentOperationalShift()}'
-                          : 'STATUS: DISARMED',
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                          color: isSystemArmed
-                              ? Colors.greenAccent
-                              : Colors.orangeAccent,
-                          fontSize: 9,
-                          fontWeight: FontWeight.w600)),
+                      style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
+                  Text(isSystemArmed ? 'ARMED • Hybrid Mode' : 'STATUS: DISARMED',
+                      style: TextStyle(color: isSystemArmed ? Colors.greenAccent : Colors.orangeAccent, fontSize: 9)),
                 ],
               ),
             ),
@@ -527,22 +363,16 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
         ),
         actions: [
           IconButton(
-            icon: Icon(
-                isSystemArmed
-                    ? Icons.lock_outlined
-                    : Icons.lock_open_rounded,
+            icon: Icon(isSystemArmed ? Icons.lock_outlined : Icons.lock_open_rounded,
                 color: isSystemArmed ? Colors.greenAccent : Colors.amberAccent),
             onPressed: toggleSystemArming,
             tooltip: 'Arm/Disarm System',
           ),
           IconButton(
-            icon: const Icon(Icons.chat_bubble_outline_rounded,
-                color: Colors.cyanAccent),
+            icon: const Icon(Icons.chat_bubble_outline_rounded, color: Colors.cyanAccent),
             onPressed: () {
               Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (context) => const AiVideoChatSearchScreen()));
+                  context, MaterialPageRoute(builder: (context) => const AiVideoChatSearchScreen()));
             },
             tooltip: 'AI Intelligence Chat',
           ),
@@ -550,553 +380,310 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
             icon: const Icon(Icons.settings_rounded, color: Colors.white),
             onPressed: () async {
               await Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (context) => const EnterpriseSettingsScreen()));
+                  context, MaterialPageRoute(builder: (context) => const EnterpriseSettingsScreen()));
               _initializeRTSPStreams();
-              _startAutoScanTimer();
               setState(() {});
             },
-            tooltip: 'System Settings',
+            tooltip: 'Settings',
           ),
         ],
       ),
-      body: RefreshIndicator(
-        color: Colors.amberAccent,
-        backgroundColor: const Color(0xFF1E1B4B),
-        onRefresh: () async {
-          _initializeRTSPStreams();
-          await _initializeInAppDemoCamera();
-        },
-        child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.all(14.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(18.0),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF1E1B4B), Color(0xFF312E81)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: const [
-                    BoxShadow(
-                        color: Colors.black45,
-                        blurRadius: 10,
-                        offset: Offset(0, 4))
-                  ],
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(14.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // WALLET CONTAINER
+            Container(
+              padding: const EdgeInsets.all(18.0),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF1E1B4B), Color(0xFF312E81)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
                 ),
-                child: Column(
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                                isAnalyzingAI
-                                    ? 'AI SCANNING IN PROGRESS...'
-                                    : 'ACTIVE AI CREDITS WALLET',
-                                style: const TextStyle(
-                                    fontSize: 10,
-                                    color: Colors.amberAccent,
-                                    fontWeight: FontWeight.bold)),
-                            const SizedBox(height: 6),
-                            Text('₹${walletBalance.toStringAsFixed(2)}',
-                                style: const TextStyle(
-                                    fontSize: 26,
-                                    fontWeight: FontWeight.w800,
-                                    color: Colors.white)),
-                          ],
-                        ),
-                        ElevatedButton.icon(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.amberAccent,
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 14, vertical: 10),
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12)),
-                          ),
-                          onPressed: handleWalletTopUp,
-                          icon: const Icon(Icons.add_card_rounded,
-                              color: Color(0xFF1E1B4B), size: 18),
-                          label: const Text('Top-Up ₹500',
-                              style: TextStyle(
-                                  color: Color(0xFF1E1B4B),
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 12)),
-                        ),
-                      ],
-                    ),
-                    const Divider(color: Colors.white24, height: 24),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceAround,
-                      children: [
-                        _buildMetricChip(
-                            Icons.videocam_rounded,
-                            "${globalEnterpriseCameras.length + (_isDemoCameraEnabled ? 1 : 0)} Nodes",
-                            "Active Feeds"),
-                        _buildMetricChip(Icons.security_rounded,
-                            "${globalEnterpriseLogs.length} Events", "Logged"),
-                        _buildMetricChip(
-                            Icons.memory_rounded,
-                            activeVisionModel
-                                .split('/')
-                                .last
-                                .split('-')
-                                .first
-                                .toUpperCase(),
-                            "Vision Engine"),
-                      ],
-                    ),
-                  ],
-                ),
+                borderRadius: BorderRadius.circular(20),
               ),
-
-              const SizedBox(height: 22),
-
-              Row(
+              child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Row(
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Icon(Icons.camera_enhance_rounded,
-                          color: Colors.amberAccent, size: 18),
-                      SizedBox(width: 6),
-                      Text('Live Demo Camera (Zero-Click Auto Guard)',
-                          style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white)),
+                      const Text('ACTIVE AI CREDITS WALLET',
+                          style: TextStyle(fontSize: 10, color: Colors.amberAccent, fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 6),
+                      Text('₹${walletBalance.toStringAsFixed(2)}',
+                          style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: Colors.white)),
                     ],
                   ),
-                  Row(
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.cameraswitch_rounded,
-                            color: Colors.cyanAccent, size: 20),
-                        tooltip: 'Switch Front/Back Camera',
-                        onPressed: _switchDemoCameraLens,
-                      ),
-                      Switch(
-                        value: _isDemoCameraEnabled,
-                        activeColor: Colors.greenAccent,
-                        onChanged: (val) {
-                          setState(() {
-                            _isDemoCameraEnabled = val;
-                          });
-                          _initializeInAppDemoCamera();
-                        },
-                      ),
-                    ],
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.amberAccent,
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    onPressed: handleWalletTopUp,
+                    icon: const Icon(Icons.add_card_rounded, color: Color(0xFF1E1B4B), size: 18),
+                    label: const Text('Top-Up ₹500',
+                        style: TextStyle(color: Color(0xFF1E1B4B), fontWeight: FontWeight.bold, fontSize: 12)),
                   ),
                 ],
               ),
-              const SizedBox(height: 6),
-              Container(
-                height: 240,
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  color: Colors.black,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                      color: isAnalyzingAI
-                          ? Colors.amberAccent
-                          : Colors.greenAccent.withOpacity(0.5),
-                      width: 1.5),
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(15),
-                  child: !_isDemoCameraEnabled
-                      ? const Center(
-                          child: Text(
-                            'Demo Camera Turned Off (Toggle switch above to start)',
-                            style:
-                                TextStyle(color: Colors.white54, fontSize: 12),
-                          ),
-                        )
-                      : _isDemoCameraInitialized &&
-                              _demoCameraController != null
-                          ? Stack(
-                              fit: StackFit.expand,
-                              children: [
-                                CameraPreview(_demoCameraController!),
-                                Positioned(
-                                  top: 10,
-                                  left: 10,
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 8, vertical: 4),
-                                    decoration: BoxDecoration(
-                                        color: Colors.black.withOpacity(0.75),
-                                        borderRadius: BorderRadius.circular(6)),
-                                    child: Row(
-                                      children: [
-                                        Icon(Icons.fiber_manual_record,
-                                            color: isAnalyzingAI
-                                                ? Colors.amberAccent
-                                                : Colors.redAccent,
-                                            size: 10),
-                                        const SizedBox(width: 5),
-                                        Text(
-                                            isAnalyzingAI
-                                                ? 'AI SCANNING FRAME...'
-                                                : 'AUTO-SCAN ACTIVE (${autoScanIntervalSeconds}s)',
-                                            style: const TextStyle(
-                                                color: Colors.white,
-                                                fontSize: 10,
-                                                fontWeight: FontWeight.bold)),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                                Positioned(
-                                  bottom: 0,
-                                  left: 0,
-                                  right: 0,
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 10, vertical: 6),
-                                    color: Colors.black.withOpacity(0.75),
-                                    child: Text(
-                                      _lastDemoScanStatus,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(
-                                          color: Colors.cyanAccent,
-                                          fontSize: 10),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            )
-                          : const Center(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  CircularProgressIndicator(
-                                      color: Colors.amberAccent),
-                                  SizedBox(height: 10),
-                                  Text('Starting Built-in Demo Camera...',
-                                      style: TextStyle(
-                                          color: Colors.white54, fontSize: 11)),
-                                ],
+            ),
+
+            const SizedBox(height: 20),
+
+            // GALLERY VIDEO & PHOTO UPLOAD AI CHECK SECTION
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1E293B),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.cyanAccent.withOpacity(0.5), width: 1.5),
+              ),
+              child: Column(
+                children: [
+                  const Icon(Icons.video_library_rounded, size: 44, color: Colors.cyanAccent),
+                  const SizedBox(height: 8),
+                  const Text('Upload Video / Photo from Gallery for AI Threat Check',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                  const SizedBox(height: 4),
+                  const Text('Test Groq Vision AI instantly with local storage clips or images.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.white54, fontSize: 11)),
+                  const SizedBox(height: 14),
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.cyanAccent,
+                      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    onPressed: isAnalyzingAI ? null : _pickAndScanFromGallery,
+                    icon: const Icon(Icons.upload_file_rounded, color: Color(0xFF0F172A), size: 18),
+                    label: Text(
+                      isAnalyzingAI ? 'AI Analyzing Media...' : 'Pick Video/Photo & Scan',
+                      style: const TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.bold, fontSize: 12),
+                    ),
+                  ),
+                  if (_lastPickedFilepath != null) ...[
+                    const SizedBox(height: 8),
+                    Text('File: ${_lastPickedFilepath!.split('/').last}',
+                        style: const TextStyle(color: Colors.white38, fontSize: 10)),
+                  ]
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 22),
+
+            // RTSP CCTV NODES GRID
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('Real CCTV RTSP Camera Nodes Grid',
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white)),
+                Text('${globalEnterpriseCameras.length} Streams',
+                    style: const TextStyle(fontSize: 11, color: Colors.white54)),
+              ],
+            ),
+            const SizedBox(height: 12),
+
+            globalEnterpriseCameras.isEmpty
+                ? Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(22),
+                    decoration: BoxDecoration(
+                        color: const Color(0xFF1E293B), borderRadius: BorderRadius.circular(16)),
+                    child: const Column(
+                      children: [
+                        Icon(Icons.videocam_off_rounded, size: 36, color: Colors.white38),
+                        SizedBox(height: 8),
+                        Text('No External CCTV RTSP Nodes Configured Yet',
+                            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+                        SizedBox(height: 4),
+                        Text('Tap Settings (⚙️) on top right to add RTSP camera links anytime.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(color: Colors.white54, fontSize: 10)),
+                      ],
+                    ),
+                  )
+                : GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      crossAxisSpacing: 12,
+                      mainAxisSpacing: 12,
+                      childAspectRatio: 16 / 13,
+                    ),
+                    itemCount: globalEnterpriseCameras.length,
+                    itemBuilder: (context, index) {
+                      String camName = globalEnterpriseCameras.keys.elementAt(index);
+                      dynamic controller = _vlcControllers[camName];
+                      return Container(
+                        decoration: BoxDecoration(
+                          color: Colors.black,
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: Colors.white12, width: 1),
+                        ),
+                        child: Stack(
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(14),
+                              child: Center(
+                                child: controller != null
+                                    ? VlcPlayer(
+                                        controller: controller,
+                                        aspectRatio: 16 / 9,
+                                        placeholder: const CircularProgressIndicator(color: Colors.amberAccent))
+                                    : const Column(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          CircularProgressIndicator(strokeWidth: 2),
+                                          SizedBox(height: 6),
+                                          Text('Connecting RTSP...', style: TextStyle(color: Colors.white54, fontSize: 9)),
+                                        ],
+                                      ),
                               ),
                             ),
-                ),
-              ),
-
-              const SizedBox(height: 24),
-
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text('Real CCTV RTSP Camera Nodes Grid',
-                      style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white)),
-                  Text('${globalEnterpriseCameras.length} RTSP Streams',
-                      style:
-                          const TextStyle(fontSize: 11, color: Colors.white54)),
-                ],
-              ),
-              const SizedBox(height: 12),
-
-              globalEnterpriseCameras.isEmpty
-                  ? Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(24),
-                      decoration: BoxDecoration(
-                          color: const Color(0xFF1E293B),
-                          borderRadius: BorderRadius.circular(16)),
-                      child: const Column(
-                        children: [
-                          Icon(Icons.videocam_off_rounded,
-                              size: 40, color: Colors.white38),
-                          SizedBox(height: 10),
-                          Text('No External CCTV RTSP Nodes Added Yet',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 13)),
-                          SizedBox(height: 4),
-                          Text(
-                              'Tap Settings (⚙️) on top right to add CP Plus / Hikvision RTSP links anytime.',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                  color: Colors.white54, fontSize: 11)),
-                        ],
-                      ),
-                    )
-                  : GridView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      gridDelegate:
-                          const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 2,
-                        crossAxisSpacing: 12,
-                        mainAxisSpacing: 12,
-                        childAspectRatio: 16 / 13,
-                      ),
-                      itemCount: globalEnterpriseCameras.length,
-                      itemBuilder: (context, index) {
-                        String camName =
-                            globalEnterpriseCameras.keys.elementAt(index);
-                        dynamic controller = _vlcControllers[camName];
-                        return Container(
-                          decoration: BoxDecoration(
-                            color: Colors.black,
-                            borderRadius: BorderRadius.circular(14),
-                            border: Border.all(color: Colors.white12, width: 1),
-                          ),
-                          child: Stack(
-                            children: [
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(14),
-                                child: Center(
-                                  child: controller != null
-                                      ? VlcPlayer(
-                                          controller: controller,
-                                          aspectRatio: 16 / 9,
-                                          placeholder:
-                                              const CircularProgressIndicator(
-                                                  color: Colors.amberAccent))
-                                      : const Column(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.center,
-                                          children: [
-                                            CircularProgressIndicator(
-                                                strokeWidth: 2),
-                                            SizedBox(height: 8),
-                                            Text('Connecting RTSP...',
-                                                style: TextStyle(
-                                                    color: Colors.white54,
-                                                    fontSize: 10)),
-                                          ],
-                                        ),
-                                ),
+                            Positioned(
+                              top: 8,
+                              left: 8,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(
+                                    color: Colors.black.withOpacity(0.7), borderRadius: BorderRadius.circular(6)),
+                                child: Text(camName,
+                                    style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
                               ),
-                              Positioned(
-                                top: 8,
-                                left: 8,
+                            ),
+                            Positioned(
+                              bottom: 8,
+                              right: 8,
+                              child: InkWell(
+                                onTap: isAnalyzingAI ? null : () => triggerGroqVisionScan(camName),
                                 child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 8, vertical: 4),
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                                   decoration: BoxDecoration(
-                                      color: Colors.black.withOpacity(0.7),
-                                      borderRadius: BorderRadius.circular(6)),
-                                  child: Row(
-                                    children: [
-                                      const Icon(Icons.fiber_manual_record,
-                                          color: Colors.redAccent, size: 10),
-                                      const SizedBox(width: 4),
-                                      Text(camName,
-                                          style: const TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 10,
-                                              fontWeight: FontWeight.bold)),
-                                    ],
+                                    color: Colors.redAccent,
+                                    borderRadius: BorderRadius.circular(8),
                                   ),
+                                  child: const Text('AI SCAN',
+                                      style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w800)),
                                 ),
                               ),
-                              Positioned(
-                                bottom: 8,
-                                right: 8,
-                                child: InkWell(
-                                  onTap: isAnalyzingAI
-                                      ? null
-                                      : () => triggerGroqVisionScan(camName),
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 10, vertical: 6),
-                                    decoration: BoxDecoration(
-                                      gradient: const LinearGradient(colors: [
-                                        Colors.redAccent,
-                                        Colors.deepOrange
-                                      ]),
-                                      borderRadius: BorderRadius.circular(8),
-                                      boxShadow: const [
-                                        BoxShadow(
-                                            color: Colors.black45,
-                                            blurRadius: 4)
-                                      ],
-                                    ),
-                                    child: const Row(
-                                      children: [
-                                        Icon(Icons.remove_red_eye_rounded,
-                                            color: Colors.white, size: 12),
-                                        SizedBox(width: 4),
-                                        Text('AI SCAN',
-                                            style: TextStyle(
-                                                color: Colors.white,
-                                                fontSize: 9,
-                                                fontWeight: FontWeight.w800)),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        );
-                      },
-                    ),
-
-              const SizedBox(height: 26),
-
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text('Enterprise Threat Intelligence Logs',
-                      style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white)),
-                  TextButton(
-                    onPressed: () {
-                      setState(() {
-                        globalEnterpriseLogs.clear();
-                      });
+                            ),
+                          ],
+                        ),
+                      );
                     },
-                    child: const Text('Clear All',
-                        style:
-                            TextStyle(color: Colors.redAccent, fontSize: 11)),
                   ),
-                ],
-              ),
-              const SizedBox(height: 10),
 
-              globalEnterpriseLogs.isEmpty
-                  ? Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
+            const SizedBox(height: 26),
+
+            // SECURITY THREAT LOGS
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('Enterprise Threat Intelligence Logs',
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white)),
+                TextButton(
+                  onPressed: () {
+                    setState(() {
+                      globalEnterpriseLogs.clear();
+                    });
+                  },
+                  child: const Text('Clear All', style: TextStyle(color: Colors.redAccent, fontSize: 11)),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+
+            globalEnterpriseLogs.isEmpty
+                ? Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(color: const Color(0xFF1E293B), borderRadius: BorderRadius.circular(12)),
+                    child: const Center(
+                        child: Text('No security audit logs recorded yet.',
+                            style: TextStyle(color: Colors.white54, fontSize: 12))),
+                  )
+                : ListView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: globalEnterpriseLogs.length,
+                    itemBuilder: (context, index) {
+                      var log = globalEnterpriseLogs[index];
+                      bool isHigh = log["level"] == "High";
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 10),
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
                           color: const Color(0xFF1E293B),
-                          borderRadius: BorderRadius.circular(12)),
-                      child: const Center(
-                        child: Text('No security logs recorded yet.',
-                            style:
-                                TextStyle(color: Colors.white54, fontSize: 12)),
-                      ),
-                    )
-                  : ListView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: globalEnterpriseLogs.length,
-                      itemBuilder: (context, index) {
-                        var log = globalEnterpriseLogs[index];
-                        bool isHigh = log["level"] == "High";
-                        return Container(
-                          margin: const EdgeInsets.only(bottom: 10),
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF1E293B),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                                color: isHigh
-                                    ? Colors.redAccent.withOpacity(0.6)
-                                    : Colors.white10,
-                                width: 1),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Row(
-                                    children: [
-                                      Icon(
-                                          isHigh
-                                              ? Icons.warning_amber_rounded
-                                              : Icons.shield_outlined,
-                                          color: isHigh
-                                              ? Colors.redAccent
-                                              : Colors.cyanAccent,
-                                          size: 14),
-                                      const SizedBox(width: 6),
-                                      Text(log["camera"] ?? "Node",
-                                          style: const TextStyle(
-                                              color: Colors.white,
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 12)),
-                                    ],
-                                  ),
-                                  Text(log["time"] ?? "",
-                                      style: const TextStyle(
-                                          color: Colors.white54, fontSize: 10)),
-                                ],
-                              ),
-                              const SizedBox(height: 6),
-                              Text(log["event"] ?? "",
-                                  style: TextStyle(
-                                      color: isHigh
-                                          ? Colors.red.shade100
-                                          : Colors.white70,
-                                      fontSize: 12)),
-                              if (log["videoPath"] != null &&
-                                  log["videoPath"] != "N/A") ...[
-                                const SizedBox(height: 4),
-                                Text("Evidence: ${log["videoPath"]}",
-                                    style: const TextStyle(
-                                        color: Colors.white38, fontSize: 9)),
-                              ]
-                            ],
-                          ),
-                        );
-                      },
-                    ),
-            ],
-          ),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                              color: isHigh ? Colors.redAccent.withOpacity(0.6) : Colors.white10, width: 1),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Row(
+                                  children: [
+                                    Icon(isHigh ? Icons.warning_amber_rounded : Icons.shield_outlined,
+                                        color: isHigh ? Colors.redAccent : Colors.cyanAccent, size: 14),
+                                    const SizedBox(width: 6),
+                                    Text(log["camera"] ?? "Node",
+                                        style: const TextStyle(
+                                            color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+                                  ],
+                                ),
+                                Text(log["time"] ?? "", style: const TextStyle(color: Colors.white54, fontSize: 10)),
+                              ],
+                            ),
+                            const SizedBox(height: 6),
+                            Text(log["event"] ?? "",
+                                style: TextStyle(
+                                    color: isHigh ? Colors.red.shade100 : Colors.white70, fontSize: 12)),
+                            if (log["videoPath"] != null && log["videoPath"] != "N/A") ...[
+                              const SizedBox(height: 4),
+                              Text("Evidence: ${log["videoPath"]}",
+                                  style: const TextStyle(color: Colors.white38, fontSize: 9)),
+                            ]
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+          ],
         ),
       ),
-    );
-  }
-
-  Widget _buildMetricChip(IconData icon, String title, String subtitle) {
-    return Column(
-      children: [
-        Icon(icon, color: Colors.amberAccent, size: 20),
-        const SizedBox(height: 4),
-        Text(title,
-            style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 12)),
-        Text(subtitle,
-            style: const TextStyle(color: Colors.white54, fontSize: 9)),
-      ],
     );
   }
 }
 
 // ============================================================================
-// 4. AI VIDEO & LOG INTELLIGENCE CHAT SEARCH SCREEN
+// AI INTELLIGENCE CHAT SEARCH SCREEN
 // ============================================================================
 
 class AiVideoChatSearchScreen extends StatefulWidget {
   const AiVideoChatSearchScreen({super.key});
 
   @override
-  State<AiVideoChatSearchScreen> createState() =>
-      _AiVideoChatSearchScreenState();
+  State<AiVideoChatSearchScreen> createState() => _AiVideoChatSearchScreenState();
 }
 
 class _AiVideoChatSearchScreenState extends State<AiVideoChatSearchScreen> {
   final TextEditingController _queryController = TextEditingController();
-  final List _chatHistory = [
+  final List> _chatHistory = [
     {
       "role": "assistant",
-      "content":
-          "Hello! Ask me anything about your captured security logs, school monitoring reports, or suspicious activity timestamps."
+      "content": "Hello! Ask me anything about your captured security audit logs, threat timestamps, or gallery video scan analyses."
     }
   ];
   bool _isSending = false;
@@ -1107,9 +694,7 @@ class _AiVideoChatSearchScreenState extends State<AiVideoChatSearchScreen> {
 
     if (globalGroqApiKey.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('⚠️ Please add Groq API Key in Settings first!'),
-            backgroundColor: Colors.redAccent),
+        const SnackBar(content: Text('⚠️ Please add Groq API Key in Settings first!'), backgroundColor: Colors.redAccent),
       );
       return;
     }
@@ -1135,8 +720,7 @@ class _AiVideoChatSearchScreenState extends State<AiVideoChatSearchScreen> {
           "messages": [
             {
               "role": "system",
-              "content":
-                  "You are the Family Care Enterprise Security Analyst AI. Answer user questions based on these security logs: $logsContext"
+              "content": "You are the Family Care Enterprise Security Analyst AI. Answer user questions based on these security logs: $logsContext"
             },
             {"role": "user", "content": userQuery}
           ],
@@ -1146,18 +730,16 @@ class _AiVideoChatSearchScreenState extends State<AiVideoChatSearchScreen> {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        String reply =
-            data['choices']?[0]['message']?['content'] ?? "No response.";
+        String reply = data['choices']?[0]['message']?['content'] ?? "No response generated.";
         setState(() {
           _chatHistory.add({"role": "assistant", "content": reply});
         });
       } else {
-        throw Exception("Error ${response.statusCode}");
+        throw Exception("Server Error ${response.statusCode}");
       }
     } catch (e) {
       setState(() {
-        _chatHistory
-            .add({"role": "assistant", "content": "Failed to fetch AI reply: $e"});
+        _chatHistory.add({"role": "assistant", "content": "Failed to fetch AI reply: $e"});
       });
     } finally {
       setState(() {
@@ -1170,8 +752,7 @@ class _AiVideoChatSearchScreenState extends State<AiVideoChatSearchScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('AI Security Log Assistant',
-            style: TextStyle(fontSize: 15)),
+        title: const Text('AI Security Log Assistant', style: TextStyle(fontSize: 15)),
         backgroundColor: const Color(0xFF1E1B4B),
       ),
       body: Column(
@@ -1184,32 +765,22 @@ class _AiVideoChatSearchScreenState extends State<AiVideoChatSearchScreen> {
                 var msg = _chatHistory[index];
                 bool isUser = msg["role"] == "user";
                 return Align(
-                  alignment:
-                      isUser ? Alignment.centerRight : Alignment.centerLeft,
+                  alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
                   child: Container(
                     margin: const EdgeInsets.only(bottom: 10),
                     padding: const EdgeInsets.all(12),
-                    constraints: BoxConstraints(
-                        maxWidth: MediaQuery.of(context).size.width * 0.8),
+                    constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.8),
                     decoration: BoxDecoration(
-                      color: isUser
-                          ? const Color(0xFF312E81)
-                          : const Color(0xFF1E293B),
+                      color: isUser ? const Color(0xFF312E81) : const Color(0xFF1E293B),
                       borderRadius: BorderRadius.circular(14),
                     ),
-                    child: Text(msg["content"] ?? "",
-                        style:
-                            const TextStyle(color: Colors.white, fontSize: 13)),
+                    child: Text(msg["content"] ?? "", style: const TextStyle(color: Colors.white, fontSize: 13)),
                   ),
                 );
               },
             ),
           ),
-          if (_isSending)
-            const Padding(
-              padding: EdgeInsets.all(8.0),
-              child: LinearProgressIndicator(color: Colors.amberAccent),
-            ),
+          if (_isSending) const LinearProgressIndicator(color: Colors.amberAccent),
           Padding(
             padding: const EdgeInsets.all(12.0),
             child: Row(
@@ -1219,21 +790,17 @@ class _AiVideoChatSearchScreenState extends State<AiVideoChatSearchScreen> {
                     controller: _queryController,
                     style: const TextStyle(color: Colors.white),
                     decoration: InputDecoration(
-                      hintText: 'Ask about threats, time logs, or alerts...',
+                      hintText: 'Ask about security threats, logs, or gallery video scans...',
                       hintStyle: const TextStyle(color: Colors.white38),
                       filled: true,
                       fillColor: const Color(0xFF1E293B),
-                      border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide.none),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
                     ),
                   ),
                 ),
                 const SizedBox(width: 8),
                 IconButton(
-                  style: IconButton.styleFrom(
-                      backgroundColor: Colors.amberAccent,
-                      padding: const EdgeInsets.all(12)),
+                  style: IconButton.styleFrom(backgroundColor: Colors.amberAccent, padding: const EdgeInsets.all(12)),
                   icon: const Icon(Icons.send_rounded, color: Color(0xFF1E1B4B)),
                   onPressed: _isSending ? null : _askSecurityAI,
                 ),
@@ -1247,25 +814,21 @@ class _AiVideoChatSearchScreenState extends State<AiVideoChatSearchScreen> {
 }
 
 // ============================================================================
-// 5. ENTERPRISE SETTINGS SCREEN
+// ENTERPRISE SETTINGS & RTSP CONFIGURATION SCREEN
 // ============================================================================
 
 class EnterpriseSettingsScreen extends StatefulWidget {
   const EnterpriseSettingsScreen({super.key});
 
   @override
-  State<EnterpriseSettingsScreen> createState() =>
-      _EnterpriseSettingsScreenState();
+  State<EnterpriseSettingsScreen> createState() => _EnterpriseSettingsScreenState();
 }
 
 class _EnterpriseSettingsScreenState extends State<EnterpriseSettingsScreen> {
-  final TextEditingController _apiKeyController =
-      TextEditingController(text: globalGroqApiKey);
-  final TextEditingController _promptController =
-      TextEditingController(text: globalCustomAIPrompt);
+  final TextEditingController _apiKeyController = TextEditingController(text: globalGroqApiKey);
+  final TextEditingController _promptController = TextEditingController(text: globalCustomAIPrompt);
   final TextEditingController _camNameController = TextEditingController();
   final TextEditingController _camIpController = TextEditingController();
-  int _selectedInterval = autoScanIntervalSeconds;
 
   void _addNewRtspCamera() {
     String name = _camNameController.text.trim();
@@ -1282,9 +845,7 @@ class _EnterpriseSettingsScreenState extends State<EnterpriseSettingsScreen> {
     });
 
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-          content: Text('✅ RTSP Node "$name" Added!'),
-          backgroundColor: Colors.green),
+      SnackBar(content: Text('✅ RTSP Node "$name" Added Successfully!'), backgroundColor: Colors.green),
     );
   }
 
@@ -1292,16 +853,14 @@ class _EnterpriseSettingsScreenState extends State<EnterpriseSettingsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Enterprise Hub Settings & BYOK',
-            style: TextStyle(fontSize: 15)),
+        title: const Text('Enterprise Hub Settings & BYOK', style: TextStyle(fontSize: 15)),
         backgroundColor: const Color(0xFF1E1B4B),
       ),
       body: ListView(
         padding: const EdgeInsets.all(16.0),
         children: [
           const Text('1. Groq API Key (BYOK Model)',
-              style: TextStyle(
-                  fontWeight: FontWeight.bold, color: Colors.amberAccent)),
+              style: TextStyle(fontWeight: FontWeight.bold, color: Colors.amberAccent)),
           const SizedBox(height: 8),
           TextField(
             controller: _apiKeyController,
@@ -1312,44 +871,12 @@ class _EnterpriseSettingsScreenState extends State<EnterpriseSettingsScreen> {
               hintStyle: const TextStyle(color: Colors.white38),
               filled: true,
               fillColor: const Color(0xFF1E293B),
-              border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide: BorderSide.none),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
             ),
           ),
           const SizedBox(height: 20),
-          const Text('2. Auto-Scan Interval (Demo Camera Seconds)',
-              style: TextStyle(
-                  fontWeight: FontWeight.bold, color: Colors.amberAccent)),
-          const SizedBox(height: 8),
-          DropdownButtonFormField<int>(
-            value: _selectedInterval,
-            dropdownColor: const Color(0xFF1E293B),
-            decoration: InputDecoration(
-              filled: true,
-              fillColor: const Color(0xFF1E293B),
-              border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide: BorderSide.none),
-            ),
-            items: const [
-              DropdownMenuItem(value: 10, child: Text('Every 10 Seconds (Fast Demo)')),
-              DropdownMenuItem(value: 15, child: Text('Every 15 Seconds (Recommended)')),
-              DropdownMenuItem(value: 30, child: Text('Every 30 Seconds (Battery Saver)')),
-              DropdownMenuItem(value: 60, child: Text('Every 60 Seconds (1 Minute)')),
-            ],
-            onChanged: (val) {
-              if (val != null) {
-                setState(() {
-                  _selectedInterval = val;
-                });
-              }
-            },
-          ),
-          const SizedBox(height: 20),
-          const Text('3. Custom AI Security & School Audit Prompt',
-              style: TextStyle(
-                  fontWeight: FontWeight.bold, color: Colors.amberAccent)),
+          const Text('2. Custom AI Security & School Audit Prompt',
+              style: TextStyle(fontWeight: FontWeight.bold, color: Colors.amberAccent)),
           const SizedBox(height: 8),
           TextField(
             controller: _promptController,
@@ -1358,17 +885,14 @@ class _EnterpriseSettingsScreenState extends State<EnterpriseSettingsScreen> {
             decoration: InputDecoration(
               filled: true,
               fillColor: const Color(0xFF1E293B),
-              border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide: BorderSide.none),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
             ),
           ),
           const SizedBox(height: 24),
           const Divider(color: Colors.white24),
           const SizedBox(height: 12),
-          const Text('4. Add Real CCTV RTSP Camera Stream (VLC Engine)',
-              style: TextStyle(
-                  fontWeight: FontWeight.bold, color: Colors.cyanAccent)),
+          const Text('3. Add Real CCTV RTSP Camera Stream (VLC Engine)',
+              style: TextStyle(fontWeight: FontWeight.bold, color: Colors.cyanAccent)),
           const SizedBox(height: 8),
           TextField(
             controller: _camNameController,
@@ -1378,9 +902,7 @@ class _EnterpriseSettingsScreenState extends State<EnterpriseSettingsScreen> {
               hintStyle: const TextStyle(color: Colors.white38, fontSize: 12),
               filled: true,
               fillColor: const Color(0xFF1E293B),
-              border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide: BorderSide.none),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
             ),
           ),
           const SizedBox(height: 8),
@@ -1392,9 +914,7 @@ class _EnterpriseSettingsScreenState extends State<EnterpriseSettingsScreen> {
               hintStyle: const TextStyle(color: Colors.white38, fontSize: 12),
               filled: true,
               fillColor: const Color(0xFF1E293B),
-              border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide: BorderSide.none),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
             ),
           ),
           const SizedBox(height: 10),
@@ -1405,8 +925,7 @@ class _EnterpriseSettingsScreenState extends State<EnterpriseSettingsScreen> {
             ),
             onPressed: _addNewRtspCamera,
             icon: const Icon(Icons.add_circle_outline, color: Colors.cyanAccent),
-            label: const Text('Add RTSP Camera Node',
-                style: TextStyle(color: Colors.cyanAccent)),
+            label: const Text('Add RTSP Camera Node', style: TextStyle(color: Colors.cyanAccent)),
           ),
           if (globalEnterpriseCameras.isNotEmpty) ...[
             const SizedBox(height: 12),
@@ -1430,23 +949,18 @@ class _EnterpriseSettingsScreenState extends State<EnterpriseSettingsScreen> {
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.amberAccent,
               padding: const EdgeInsets.symmetric(vertical: 14),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
             onPressed: () {
               globalGroqApiKey = _apiKeyController.text.trim();
               globalCustomAIPrompt = _promptController.text.trim();
-              autoScanIntervalSeconds = _selectedInterval;
               Navigator.pop(context);
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                    content: Text('✅ All Enterprise Settings Saved!'),
-                    backgroundColor: Colors.green),
+                const SnackBar(content: Text('✅ All Enterprise Settings Saved!'), backgroundColor: Colors.green),
               );
             },
             child: const Text('Save All Configuration',
-                style: TextStyle(
-                    color: Color(0xFF1E1B4B), fontWeight: FontWeight.bold)),
+                style: TextStyle(color: Color(0xFF1E1B4B), fontWeight: FontWeight.bold)),
           ),
         ],
       ),
