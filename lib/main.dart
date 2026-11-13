@@ -1,5 +1,5 @@
 // ============================================================================
-// FAMILY CARE VISION AI - ENTERPRISE HYBRID EDITION (1200+ LINES MASTER CODE)
+// FAMILY CARE VISION AI - ENTERPRISE HYBRID EDITION (CLEAN & FINAL)
 // ============================================================================
 
 import 'package:flutter/material.dart';
@@ -33,7 +33,7 @@ List> globalEnterpriseLogs = [
   {
     "time": "System Boot",
     "camera": "Enterprise Master Hub",
-    "event": "🛡️ Security Hub Initialized Successfully in Gallery & RTSP Hybrid Intelligence Mode.",
+    "event": "🛡️ Security Hub Initialized Successfully in Gallery & RTSP Hybrid Mode.",
     "videoPath": "N/A",
     "level": "Info"
   }
