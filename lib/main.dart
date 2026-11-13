@@ -19,13 +19,10 @@ String globalCustomAIPrompt =
 
 String globalGroqApiKey = "";
 
-// Default Active Models
 String activeChatModel = "qwen/qwen3.8-27b";
 String activeVisionModel = "llama-3.2-11b-vision-preview";
 
-// Dual-Mode Operation State (Day: Hourly Smart Audit | Night: Instant Alert)
-String activeSecurityScheduleMode = "Auto Hybrid (Day Audit + Night Alert)";
-int autoScanIntervalSeconds = 15; // Demo Camera Auto-Scan Interval
+int autoScanIntervalSeconds = 15;
 
 List> globalEnterpriseLogs = [
   {
@@ -95,10 +92,8 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
   bool isSystemArmed = true;
   bool isAnalyzingAI = false;
 
-  // --- RTSP VLC CONTROLLERS (FOR REAL CCTV CAMERAS) ---
   final Map<String, VlcPlayerController> _vlcControllers = {};
 
-  // --- IN-APP DEMO CAMERA & AUTO-SCAN CONTROLLERS ---
   CameraController? _demoCameraController;
   bool _isDemoCameraInitialized = false;
   bool _isDemoCameraEnabled = true;
@@ -115,9 +110,6 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
     });
   }
 
-  // --------------------------------------------------------------------------
-  // A. IN-APP DEMO CAMERA INITIALIZATION & ZERO-CLICK AUTO-SCANNER
-  // --------------------------------------------------------------------------
   Future<void> _initializeInAppDemoCamera() async {
     _autoScanTimer?.cancel();
     if (_demoCameraController != null) {
@@ -211,13 +203,13 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
       return;
     }
     setState(() {
-      _selectedCameraIndex = (_selectedCameraIndex + 1) % globalAvailableCameras.length;
+      _selectedCameraIndex =
+          (_selectedCameraIndex + 1) % globalAvailableCameras.length;
       _isDemoCameraInitialized = false;
     });
     _initializeInAppDemoCamera();
   }
 
-  // 👁️ ZERO-CLICK AUTO VISION SCANNER FOR IN-APP DEMO CAMERA
   Future<void> triggerDemoCameraAutoScan() async {
     if (!_isDemoCameraInitialized ||
         _demoCameraController == null ||
@@ -297,9 +289,6 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
     }
   }
 
-  // --------------------------------------------------------------------------
-  // B. REAL CCTV RTSP STREAMS INITIALIZATION & SCANNER
-  // --------------------------------------------------------------------------
   void _initializeRTSPStreams() {
     for (var controller in _vlcControllers.values) {
       try {
@@ -393,9 +382,6 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
     }
   }
 
-  // --------------------------------------------------------------------------
-  // C. SHARED GROQ VISION API ENGINE & HELPER UTILITIES
-  // --------------------------------------------------------------------------
   Future<String> _sendFrameToGroqVisionAPI(String base64Image) async {
     final url = Uri.parse('https://api.groq.com/openai/v1/chat/completions');
 
@@ -503,9 +489,6 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
     );
   }
 
-  // --------------------------------------------------------------------------
-  // D. UI BUILDER
-  // --------------------------------------------------------------------------
   @override
   Widget build(BuildContext context) {
     return Scaffold(
