@@ -1,0 +1,34 @@
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+
+rootProject.buildDir = '../build'
+subprojects {
+    project.buildDir = "${rootProject.buildDir}/${project.name}"
+}
+subprojects {
+    project.evaluationDependsOn(':app')
+}
+
+// ⚠️ यह ब्लॉक सभी एंड्रॉइड सब-प्रोजेक्ट्स (जैसे camera_android) में जबरदस्ती minSdk 21 सेट कर देगा, ताकि एरर न आए।
+subprojects {
+    afterEvaluate { project ->
+        if (project.hasProperty("android")) {
+            project.android {
+                if (namespace == null) {
+                    namespace project.group
+                }
+                defaultConfig {
+                    minSdkVersion 21
+                }
+            }
+        }
+    }
+}
+
+task clean(type: Delete) {
+    delete rootProject.buildDir
+}
