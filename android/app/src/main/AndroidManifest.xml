@@ -1,8 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
-    package="com.example.family_care_ai">
+    xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- यह लाइन ग्रेडल की मिनिमम एसडीके वर्जन की जिद्द को खत्म कर देगी -->
+    <!-- यह लाइन गिटहब या क्लाउड बिल्ड सर्वर पर कैमरा प्लगइन के SDK वर्जन के झंझट को पूरी तरह ओवरराइड कर देगी[span_1](start_span)[span_1](end_span) -->
     <uses-sdk tools:overrideLibrary="io.flutter.plugins.camera, com.flutter_vlc_player" />
 
     <application
