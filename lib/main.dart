@@ -171,7 +171,6 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
         _lastDemoScanStatus = "Camera Active • Auto-Scanning every ${autoScanIntervalSeconds}s";
       });
 
-      // Start immediate scan after 3 seconds of boot, then periodic auto-scan
       Future.delayed(const Duration(seconds: 3), () {
         if (mounted && isSystemArmed && _isDemoCameraEnabled && !isAnalyzingAI) {
           triggerDemoCameraAutoScan();
@@ -299,7 +298,7 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
   }
 
   // --------------------------------------------------------------------------
-  // B. REAL CCTV RTSP STREAMS INITIALIZATION & SCANNER (VLC ENGINE INTACT)
+  // B. REAL CCTV RTSP STREAMS INITIALIZATION & SCANNER
   // --------------------------------------------------------------------------
   void _initializeRTSPStreams() {
     for (var controller in _vlcControllers.values) {
@@ -333,7 +332,6 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
     if (mounted) setState(() {});
   }
 
-  // 👁️ AI VISION SCANNER FOR RTSP CCTV NODES
   Future<void> triggerGroqVisionScan(String cameraName) async {
     if (walletBalance < 0.75) {
       _showAppSnackBar(
@@ -506,7 +504,7 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
   }
 
   // --------------------------------------------------------------------------
-  // D. UI BUILDER (DASHBOARD + IN-APP DEMO CAMERA + RTSP GRID + LOGS)
+  // D. UI BUILDER
   // --------------------------------------------------------------------------
   @override
   Widget build(BuildContext context) {
@@ -593,7 +591,6 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // --- 1. ENTERPRISE WALLET & SYSTEM METRICS BANNER ---
               Container(
                 padding: const EdgeInsets.all(18.0),
                 decoration: BoxDecoration(
@@ -680,7 +677,6 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
 
               const SizedBox(height: 22),
 
-              // --- 2. IN-APP AUTO-SCAN DEMO CAMERA SECTION ---
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -814,7 +810,6 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
 
               const SizedBox(height: 24),
 
-              // --- 3. RTSP CAMERA NODES GRID (REAL CCTV SYSTEM INTACT) ---
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -974,7 +969,6 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
 
               const SizedBox(height: 26),
 
-              // --- 4. ENTERPRISE THREAT INTELLIGENCE LOGS ---
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -1271,7 +1265,7 @@ class _AiVideoChatSearchScreenState extends State<AiVideoChatSearchScreen> {
 }
 
 // ============================================================================
-// 5. ENTERPRISE SETTINGS SCREEN (BYOK API KEY, PROMPT, RTSP NODES & TIMER)
+// 5. ENTERPRISE SETTINGS SCREEN
 // ============================================================================
 
 class EnterpriseSettingsScreen extends StatefulWidget {
