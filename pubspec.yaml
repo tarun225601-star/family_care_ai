@@ -1,5 +1,5 @@
 name: family_care_ai
-description: A high-scale plug-and-play Vision AI SaaS mobile application for home safety.
+description: A high-scale plug-and-play Vision AI SaaS mobile application for home and school safety.
 publish_to: 'none'
 
 version: 1.0.0+1
@@ -13,7 +13,7 @@ dependencies:
   cupertino_icons: ^1.0.6
   http: ^1.2.0
   flutter_vlc_player: ^7.4.1
-  google_generative_ai: ^0.4.2
+  camera: ^0.11.0+2
 
 dev_dependencies:
   flutter_test:
