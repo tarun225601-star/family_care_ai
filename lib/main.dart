@@ -1,5 +1,5 @@
 // ============================================================================
-// FAMILY CARE VISION AI - ENTERPRISE HYBRID MASTER EDITION (1200+ LINES)
+// FAMILY CARE VISION AI - ENTERPRISE HYBRID MASTER EDITION (WITH MODEL DROPDOWN)
 // ============================================================================
 
 import 'package:flutter/material.dart';
@@ -24,16 +24,27 @@ String globalCustomAIPrompt =
 
 String globalGroqApiKey = "";
 
-String activeChatModel = "qwen/qwen3.8-27b";
+// 5-6 Working Models for Chat and Vision Dropdowns
+String activeChatModel = "llama-3.3-70b-versatile";
 String activeVisionModel = "llama-3.2-11b-vision-preview";
 
-int autoScanIntervalSeconds = 15;
+List<String> availableChatModels = [
+  "llama-3.3-70b-versatile",
+  "llama-3.1-8b-instant",
+  "mixtral-8x7b-32768",
+  "gemma2-9b-it"
+];
+
+List<String> availableVisionModels = [
+  "llama-3.2-11b-vision-preview",
+  "llama-3.2-90b-vision-preview"
+];
 
 List globalEnterpriseLogs = [
   {
     "time": "System Boot",
     "camera": "Enterprise Master Hub",
-    "event": "🛡️ Security Hub Initialized Successfully in Gallery & RTSP Hybrid Mode.",
+    "event": "🛡️ Security Hub Initialized Successfully with Model Selector.",
     "videoPath": "N/A",
     "level": "Info"
   }
@@ -131,13 +142,13 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
         globalEnterpriseLogs.insert(0, {
           "time": _getCurrentFormattedTime(),
           "camera": "Gallery Media Audit Node",
-          "event": "🤖 AI Video/Photo Audit: $aiTextResponse",
+          "event": "🤖 AI Video/Photo Audit ($activeVisionModel): $aiTextResponse",
           "videoPath": media.path,
           "level": isThreatDetected ? "High" : "Info"
         });
       });
 
-      _showAppSnackBar('✅ Gallery Media Scanned Successfully by Groq AI!', Colors.green);
+      _showAppSnackBar('✅ Gallery Media Scanned Successfully!', Colors.green);
     } catch (e) {
       _showAppSnackBar('❌ Gallery Scan Error: $e', Colors.red, durationSeconds: 5);
     } finally {
@@ -683,7 +694,7 @@ class _AiVideoChatSearchScreenState extends State<AiVideoChatSearchScreen> {
   final List _chatHistory = [
     {
       "role": "assistant",
-      "content": "Hello! Ask me anything about your captured security audit logs, threat timestamps, or gallery video scan analyses."
+      "content": "Hello! Ask me anything about your captured security audit logs or threat timestamps."
     }
   ];
   bool _isSending = false;
@@ -752,7 +763,7 @@ class _AiVideoChatSearchScreenState extends State<AiVideoChatSearchScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('AI Security Log Assistant', style: TextStyle(fontSize: 15)),
+        title: Text('AI Assistant ($activeChatModel)', style: const TextStyle(fontSize: 13)),
         backgroundColor: const Color(0xFF1E1B4B),
       ),
       body: Column(
@@ -790,7 +801,7 @@ class _AiVideoChatSearchScreenState extends State<AiVideoChatSearchScreen> {
                     controller: _queryController,
                     style: const TextStyle(color: Colors.white),
                     decoration: InputDecoration(
-                      hintText: 'Ask about security threats, logs, or gallery video scans...',
+                      hintText: 'Ask about security threats, logs...',
                       hintStyle: const TextStyle(color: Colors.white38),
                       filled: true,
                       fillColor: const Color(0xFF1E293B),
@@ -814,7 +825,7 @@ class _AiVideoChatSearchScreenState extends State<AiVideoChatSearchScreen> {
 }
 
 // ============================================================================
-// ENTERPRISE SETTINGS & RTSP CONFIGURATION SCREEN
+// ENTERPRISE SETTINGS & MODEL DROPDOWN SCREEN
 // ============================================================================
 
 class EnterpriseSettingsScreen extends StatefulWidget {
@@ -853,7 +864,7 @@ class _EnterpriseSettingsScreenState extends State<EnterpriseSettingsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Enterprise Hub Settings & BYOK', style: TextStyle(fontSize: 15)),
+        title: const Text('Settings & Model Selector', style: TextStyle(fontSize: 15)),
         backgroundColor: const Color(0xFF1E1B4B),
       ),
       body: ListView(
@@ -875,7 +886,64 @@ class _EnterpriseSettingsScreenState extends State<EnterpriseSettingsScreen> {
             ),
           ),
           const SizedBox(height: 20),
-          const Text('2. Custom AI Security & School Audit Prompt',
+
+          // CHAT MODEL DROPDOWN
+          const Text('2. Select AI Chat Model',
+              style: TextStyle(fontWeight: FontWeight.bold, color: Colors.amberAccent)),
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            decoration: BoxDecoration(color: const Color(0xFF1E293B), borderRadius: BorderRadius.circular(10)),
+            child: DropdownButton<String>(
+              value: activeChatModel,
+              isExpanded: true,
+              dropdownColor: const Color(0xFF1E293B),
+              underline: const SizedBox(),
+              style: const TextStyle(color: Colors.white),
+              items: availableChatModels.map((String model) {
+                return DropdownMenuItem<String>(
+                  value: model,
+                  child: Text(model),
+                );
+              }).toList(),
+              onChanged: (String? newValue) {
+                setState(() {
+                  if (newValue != null) activeChatModel = newValue;
+                });
+              },
+            ),
+          ),
+          const SizedBox(height: 20),
+
+          // VISION MODEL DROPDOWN
+          const Text('3. Select AI Vision / Media Model',
+              style: TextStyle(fontWeight: FontWeight.bold, color: Colors.amberAccent)),
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            decoration: BoxDecoration(color: const Color(0xFF1E293B), borderRadius: BorderRadius.circular(10)),
+            child: DropdownButton<String>(
+              value: activeVisionModel,
+              isExpanded: true,
+              dropdownColor: const Color(0xFF1E293B),
+              underline: const SizedBox(),
+              style: const TextStyle(color: Colors.white),
+              items: availableVisionModels.map((String model) {
+                return DropdownMenuItem<String>(
+                  value: model,
+                  child: Text(model),
+                );
+              }).toList(),
+              onChanged: (String? newValue) {
+                setState(() {
+                  if (newValue != null) activeVisionModel = newValue;
+                });
+              },
+            ),
+          ),
+          const SizedBox(height: 20),
+
+          const Text('4. Custom AI Security Prompt',
               style: TextStyle(fontWeight: FontWeight.bold, color: Colors.amberAccent)),
           const SizedBox(height: 8),
           TextField(
@@ -891,14 +959,15 @@ class _EnterpriseSettingsScreenState extends State<EnterpriseSettingsScreen> {
           const SizedBox(height: 24),
           const Divider(color: Colors.white24),
           const SizedBox(height: 12),
-          const Text('3. Add Real CCTV RTSP Camera Stream (VLC Engine)',
+
+          const Text('5. Add Real CCTV RTSP Camera Stream',
               style: TextStyle(fontWeight: FontWeight.bold, color: Colors.cyanAccent)),
           const SizedBox(height: 8),
           TextField(
             controller: _camNameController,
             style: const TextStyle(color: Colors.white),
             decoration: InputDecoration(
-              hintText: 'Camera Name (e.g., Main Gate / Class 10A)',
+              hintText: 'Camera Name (e.g., Main Gate)',
               hintStyle: const TextStyle(color: Colors.white38, fontSize: 12),
               filled: true,
               fillColor: const Color(0xFF1E293B),
@@ -910,7 +979,7 @@ class _EnterpriseSettingsScreenState extends State<EnterpriseSettingsScreen> {
             controller: _camIpController,
             style: const TextStyle(color: Colors.white),
             decoration: InputDecoration(
-              hintText: 'RTSP URL (rtsp://admin:pass@192.168.1.50:554/stream1)',
+              hintText: 'RTSP URL (rtsp://...)',
               hintStyle: const TextStyle(color: Colors.white38, fontSize: 12),
               filled: true,
               fillColor: const Color(0xFF1E293B),
@@ -956,7 +1025,7 @@ class _EnterpriseSettingsScreenState extends State<EnterpriseSettingsScreen> {
               globalCustomAIPrompt = _promptController.text.trim();
               Navigator.pop(context);
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('✅ All Enterprise Settings Saved!'), backgroundColor: Colors.green),
+                const SnackBar(content: Text('✅ Settings & Models Saved Successfully!'), backgroundColor: Colors.green),
               );
             },
             child: const Text('Save All Configuration',
