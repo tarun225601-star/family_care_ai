@@ -1,5 +1,5 @@
 // ============================================================================
-// FAMILY CARE VISION AI - FINAL VERIFIED MASTER EDITION
+// FAMILY CARE VISION AI - FINAL ERROR-FREE MASTER EDITION
 // ============================================================================
 
 import 'package:flutter/material.dart';
@@ -20,26 +20,26 @@ String globalCustomAIPrompt =
 
 String globalGroqApiKey = "";
 
-// Your Verified Working Models from Screenshots
-String activeChatModel = "allam-2-7b";[span_4](start_span)[span_4](end_span)
-String activeVisionModel = "qwen/qwen3.8-27b";[span_5](start_span)[span_5](end_span)
+// Working Models from your configuration
+String activeChatModel = "allam-2-7b";
+String activeVisionModel = "qwen/qwen3.8-27b";
 
 List<String> availableChatModels = [
-  "allam-2-7b",[span_6](start_span)[span_6](end_span)
-  "qwen/qwen3.8-27b",[span_7](start_span)[span_7](end_span)
+  "allam-2-7b",
+  "qwen/qwen3.8-27b",
   "llama-3.1-8b-instant"
 ];
 
 List<String> availableVisionModels = [
-  "qwen/qwen3.8-27b",[span_8](start_span)[span_8](end_span)
-  "allam-2-7b[span_9](start_span)"[span_9](end_span)
+  "qwen/qwen3.8-27b",
+  "allam-2-7b"
 ];
 
 List globalEnterpriseLogs = [
   {
     "time": "System Boot",
     "camera": "Enterprise Master Hub",
-    "event": "🛡️ Security Hub Initialized with Allam and Qwen Models.",
+    "event": "🛡️ Security Hub Initialized Successfully.",
     "videoPath": "N/A",
     "level": "Info"
   }
@@ -126,7 +126,7 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
         globalEnterpriseLogs.insert(0, {
           "time": _getCurrentFormattedTime(),
           "camera": "Gallery Media Audit Node",
-          "event": "🤖 Vision Audit ($activeVisionModel): $aiTextResponse",[span_10](start_span)[span_10](end_span)
+          "event": "🤖 Vision Audit ($activeVisionModel): $aiTextResponse",
           "videoPath": media.path,
           "level": isThreatDetected ? "High" : "Info"
         });
@@ -287,7 +287,7 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
     );
   }
 
-  fnHandleWalletTopUp() {
+  void fnHandleWalletTopUp() {
     setState(() {
       walletBalance += 500.0;
     });
@@ -844,7 +844,7 @@ class _EnterpriseSettingsScreenState extends State<EnterpriseSettingsScreen> {
               dropdownColor: const Color(0xFF1E293B),
               underline: const SizedBox(),
               style: const TextStyle(color: Colors.white),
-              items: availableChatModels.map((String model) {
+              items: availableChatModels.map<DropdownMenuItem<String>>((String model) {
                 return DropdownMenuItem<String>(
                   value: model,
                   child: Text(model),
@@ -870,7 +870,7 @@ class _EnterpriseSettingsScreenState extends State<EnterpriseSettingsScreen> {
               dropdownColor: const Color(0xFF1E293B),
               underline: const SizedBox(),
               style: const TextStyle(color: Colors.white),
-              items: availableVisionModels.map((String model) {
+              items: availableVisionModels.map<DropdownMenuItem<String>>((String model) {
                 return DropdownMenuItem<String>(
                   value: model,
                   child: Text(model),
