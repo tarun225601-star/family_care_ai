@@ -507,7 +507,7 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
 }
 
 // ============================================================================
-// SETTINGS SCREEN (Manage API Keys, Prompts & Camera Nodes)
+// SETTINGS SCREEN (Manage API Keys, Prompts & Camera Nodes with SharedPreferences)
 // ============================================================================
 class EnterpriseSettingsScreen extends StatefulWidget {
   const EnterpriseSettingsScreen({super.key});
@@ -523,6 +523,26 @@ class _EnterpriseSettingsScreenState extends State<EnterpriseSettingsScreen> {
       TextEditingController(text: globalCustomAIPrompt);
   final TextEditingController _camNameController = TextEditingController();
   final TextEditingController _camUrlController = TextEditingController();
+
+  // सेटिंग्स और कैमरे परमानेंट सेव करने के लिए फंक्शन
+  Future<void> _saveToPreferences() async {
+    final prefs = await SharedPreferences.getInstance();
+    
+    // ग्लोबल वेरिएबल्स अपडेट करें
+    globalGroqApiKey = _apiKeyController.text.trim();
+    globalCustomAIPrompt = _promptController.text.trim();
+
+    // SharedPreferences में डेटा स्टोर करें
+    await prefs.setString('saved_groq_key', globalGroqApiKey);
+    await prefs.setString('saved_ai_prompt', globalCustomAIPrompt);
+    await prefs.setString('saved_cameras_map', jsonEncode(globalCameras));
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('✅ Settings & Cameras Saved Permanently!'), backgroundColor: Colors.green),
+    );
+    Navigator.pop(context);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -595,10 +615,10 @@ class _EnterpriseSettingsScreenState extends State<EnterpriseSettingsScreen> {
               onPressed: () {
                 if (_camNameController.text.isNotEmpty && _camUrlController.text.isNotEmpty) {
                   setState(() {
-                    globalEnterpriseCameras[_camNameController.text.trim()] = {
-                      "url": _camUrlController.text.trim(),
-                      "active": true
-                    };
+                    String name = _camNameController.text.trim();
+                    String url = _camUrlController.text.trim();
+                    // अगर आपका मैप स्ट्रक्चर globalCameras है तो यह इस्तेमाल होगा:
+                    globalCameras[name] = url;
                   });
                   _camNameController.clear();
                   _camUrlController.clear();
@@ -611,11 +631,7 @@ class _EnterpriseSettingsScreenState extends State<EnterpriseSettingsScreen> {
             const SizedBox(height: 24),
             ElevatedButton(
               style: ElevatedButton.styleFrom(backgroundColor: Colors.greenAccent),
-              onPressed: () {
-                globalGroqApiKey = _apiKeyController.text.trim();
-                globalCustomAIPrompt = _promptController.text.trim();
-                Navigator.pop(context);
-              },
+              onPressed: _saveToPreferences, // यहाँ SharedPreferences वाला फंक्शन कॉल होगा
               child: const Text('Save All Settings & Return', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
             ),
           ],
@@ -624,6 +640,7 @@ class _EnterpriseSettingsScreenState extends State<EnterpriseSettingsScreen> {
     );
   }
 }
+
 
 // ============================================================================
 // AI CHAT & SEARCH SCREEN
