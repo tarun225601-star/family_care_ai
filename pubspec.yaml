@@ -10,7 +10,6 @@ dependencies:
   flutter:
     sdk: flutter
   cupertino_icons: ^1.0.6
-  image_picker: ^1.0.7
   flutter_vlc_player: ^7.4.0
   http: ^1.2.0
 
@@ -21,5 +20,6 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
-  assets:
-    - assets/
+  # अगर कोई कस्टम एसेट या इमेज फोल्डर इस्तेमाल करना हो तो यहाँ जोड़ सकते हैं
+  # assets:
+  #   - assets/
