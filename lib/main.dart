@@ -1,5 +1,5 @@
 // ============================================================================
-// FAMILY CARE VISION AI - FINAL ENTERPRISE MASTER EDITION (CRASH & ERROR FREE)
+// FAMILY CARE VISION AI - CLEAN & CRASH-PROOF MASTER EDITION
 // ============================================================================
 
 import 'package:flutter/material.dart';
@@ -9,25 +9,9 @@ import 'dart:convert';
 import 'dart:async';
 import 'dart:typed_data';
 
-// 1. Global Multi-Camera Registry (8-10+ RTSP Streams Support)
-Map globalEnterpriseCameras = {
-  "Main Entrance Cam": {
-    "ip": "rtsp://admin:password@192.168.1.100:554/stream1",
-    "active": true
-  },
-  "Cash Counter Cam": {
-    "ip": "rtsp://admin:password@192.168.1.101:554/stream1",
-    "active": true
-  },
-  "Warehouse Cam 3": {
-    "ip": "rtsp://admin:password@192.168.1.102:554/stream1",
-    "active": true
-  },
-  "Backdoor Cam 4": {
-    "ip": "rtsp://admin:password@192.168.1.103:554/stream1",
-    "active": true
-  },
-};
+// 1. कैमरा लिस्ट को बिल्कुल खाली कर दिया है ताकि ऐप क्रैश न हो। 
+// तू ऐप खुलने के बाद सेटिंग्स (⚙️) से अपना असली RTSP लिंक जोड़ लेना।
+Map globalEnterpriseCameras = {};
 
 // 2. Global AI Configurations & System Prompts
 String globalCustomAIPrompt =
@@ -52,12 +36,12 @@ List availableVisionModels = [
   "allam-2-7b"
 ];
 
-// 3. Enterprise Audit Logs (Simple Dynamic List - No Syntax Error)
+// 3. Enterprise Audit Logs
 List globalEnterpriseLogs = [
   {
     "time": "System Boot",
     "camera": "Enterprise Master Hub",
-    "event": "🛡️ Security Hub Initialized Successfully. Multi-Camera RTSP & AI Ready.",
+    "event": "🛡️ Security Hub Initialized Successfully. Ready for RTSP Nodes.",
     "level": "Info"
   }
 ];
@@ -154,7 +138,7 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
     }
 
     if (globalGroqApiKey.trim().isEmpty) {
-      _showAppSnackBar('⚠️ Please configure your API Key in Settings (⚙️) first!', Colors.redAccent);
+      _showAppSnackBar('⚠️ Please configure your Groq API Key in Settings (⚙️) first!', Colors.redAccent);
       return;
     }
 
@@ -315,7 +299,7 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
                   const Text('Family Care VIP Command Center',
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
-                  Text(isSystemArmed ? 'ARMED • Multi-Camera RTSP Active' : 'STATUS: DISARMED',
+                  Text(isSystemArmed ? 'ARMED • Multi-Camera RTSP Ready' : 'STATUS: DISARMED',
                       style: TextStyle(color: isSystemArmed ? Colors.greenAccent : Colors.orangeAccent, fontSize: 9)),
                 ],
               ),
@@ -393,7 +377,7 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('Live Multi-Camera Grid (8-10+ Streams)',
+                const Text('Live Multi-Camera Grid',
                     style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white)),
                 Text('${globalEnterpriseCameras.length} Streams',
                     style: const TextStyle(fontSize: 11, color: Colors.white54)),
@@ -403,19 +387,19 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
             globalEnterpriseCameras.isEmpty
                 ? Container(
                     width: double.infinity,
-                    padding: const EdgeInsets.all(22),
+                    padding: const EdgeInsets.all(28),
                     decoration: BoxDecoration(
                         color: const Color(0xFF1E293B), borderRadius: BorderRadius.circular(16)),
                     child: const Column(
                       children: [
-                        Icon(Icons.videocam_off_rounded, size: 36, color: Colors.white38),
-                        SizedBox(height: 8),
-                        Text('No External CCTV RTSP Nodes Configured Yet',
-                            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
-                        SizedBox(height: 4),
-                        Text('Tap Settings (⚙️) on top right to add RTSP camera links anytime.',
+                        Icon(Icons.videocam_off_rounded, size: 40, color: Colors.amberAccent),
+                        SizedBox(height: 10),
+                        Text('No RTSP Cameras Configured Yet',
+                            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                        SizedBox(height: 6),
+                        Text('Tap Settings (⚙️) on top right to add your live camera RTSP links.',
                             textAlign: TextAlign.center,
-                            style: TextStyle(color: Colors.white54, fontSize: 10)),
+                            style: TextStyle(color: Colors.white54, fontSize: 11)),
                       ],
                     ),
                   )
@@ -605,14 +589,14 @@ class _EnterpriseSettingsScreenState extends State<EnterpriseSettingsScreen> {
               ),
             ),
             const SizedBox(height: 20),
-            const Text('Add New RTSP CCTV Camera Node (8-10+ support)',
+            const Text('Add New RTSP CCTV Camera Node',
                 style: TextStyle(fontWeight: FontWeight.bold, color: Colors.amberAccent)),
             const SizedBox(height: 8),
             TextField(
               controller: _camNameController,
               style: const TextStyle(color: Colors.white, fontSize: 12),
               decoration: InputDecoration(
-                hintText: 'Camera Name (e.g. Counter Cam 5)',
+                hintText: 'Camera Name (e.g. Counter Cam 1)',
                 filled: true,
                 fillColor: const Color(0xFF1E293B),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
