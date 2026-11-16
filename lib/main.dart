@@ -384,7 +384,7 @@ class EnterpriseCctvApp extends StatelessWidget {
 // 4. LIVE STREAM FRAME WIDGET (LIVE MJPEG CCTV PLAYER)
 // ============================================================================
 
-import 'package:flutter_mjpeg/flutter_mjpeg.dart';
+
 
 class LiveCctvFeedRenderer extends StatelessWidget {
   final CameraNodeConfig camera;
