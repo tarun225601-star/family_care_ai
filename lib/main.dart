@@ -506,8 +506,85 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
   }
 }
 
+backgroundColor: const Color(0xFF1E1B4B),
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Groq API Key Setup',
+                style: TextStyle(fontWeight: FontWeight.bold, color: Colors.cyanAccent)),
+            const SizedBox(height: 6),
+            TextField(
+              controller: _apiKeyController,
+              obscureText: true,
+              style: const TextStyle(color: Colors.white, fontSize: 12),
+              decoration: InputDecoration(
+                hintText: 'Enter your Groq API Key (gsk_...)',
+                filled: true,
+                fillColor: const Color(0xFF1E293B),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Text('Custom AI Security Prompt',
+                style: TextStyle(fontWeight: FontWeight.bold, color: Colors.cyanAccent)),
+            const SizedBox(height: 6),
+            TextField(
+              controller: _promptController,
+              maxLines: 3,
+              style: const TextStyle(color: Colors.white, fontSize: 12),
+              decoration: InputDecoration(
+                filled: true,
+                fillColor: const Color(0xFF1E293B),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+            ),
+            const SizedBox(height: 20),
+            const Text('Add New Camera Stream Node',
+                style: TextStyle(fontWeight: FontWeight.bold, color: Colors.amberAccent)),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _camNameController,
+              style: const TextStyle(color: Colors.white, fontSize: 12),
+              decoration: InputDecoration(
+                hintText: 'Camera Name (e.g. Entrance Cam 7)',
+                filled: true,
+                fillColor: const Color(0xFF1E293B),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _camUrlController,
+              style: const TextStyle(color: Colors.white, fontSize: 12),
+              decoration: InputDecoration(
+                hintText: 'Stream/Image URL (https://...)',
+                filled: true,
+                fillColor: const Color(0xFF1E293B),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+            ),
+            const SizedBox(height: 12),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.amberAccent),
+              onPressed: () {
+                if (_camNameController.text.isNotEmpty && _camUrlController.text.isNotEmpty) {
+                  setState(() {
+                    String name = _camNameController.text.trim();
+                    String url = _camUrlController.text.trim();
+                    // अगर आपका मैप स्ट्रक्चर globalCameras है तो यह इस्तेमाल होगा:
+                    globalEnterpriseCameras[name] = url;
+                  });
+                  _camNameController.clear();
+                  _camUrlController.clear();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('✅ Camera Node Added Successfully!')));
+                }
+              },
 // ============================================================================
-// SETTINGS SCREEN (Manage API Keys, Prompts & Camera Nodes with SharedPreferences)
+// SETTINGS SCREEN (Fixed with globalEnterpriseCameras & SharedPreferences)
 // ============================================================================
 class EnterpriseSettingsScreen extends StatefulWidget {
   const EnterpriseSettingsScreen({super.key});
@@ -524,18 +601,15 @@ class _EnterpriseSettingsScreenState extends State<EnterpriseSettingsScreen> {
   final TextEditingController _camNameController = TextEditingController();
   final TextEditingController _camUrlController = TextEditingController();
 
-  // सेटिंग्स और कैमरे परमानेंट सेव करने के लिए फंक्शन
   Future<void> _saveToPreferences() async {
     final prefs = await SharedPreferences.getInstance();
     
-    // ग्लोबल वेरिएबल्स अपडेट करें
     globalGroqApiKey = _apiKeyController.text.trim();
     globalCustomAIPrompt = _promptController.text.trim();
 
-    // SharedPreferences में डेटा स्टोर करें
     await prefs.setString('saved_groq_key', globalGroqApiKey);
     await prefs.setString('saved_ai_prompt', globalCustomAIPrompt);
-    await prefs.setString('saved_cameras_map', jsonEncode(globalCameras));
+    await prefs.setString('saved_cameras_map', jsonEncode(globalEnterpriseCameras));
 
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
@@ -617,8 +691,10 @@ class _EnterpriseSettingsScreenState extends State<EnterpriseSettingsScreen> {
                   setState(() {
                     String name = _camNameController.text.trim();
                     String url = _camUrlController.text.trim();
-                    // अगर आपका मैप स्ट्रक्चर globalCameras है तो यह इस्तेमाल होगा:
-                    globalEnterpriseCameras[name] = url;
+                    globalEnterpriseCameras[name] = {
+                      "url": url,
+                      "active": true
+                    };
                   });
                   _camNameController.clear();
                   _camUrlController.clear();
@@ -631,7 +707,7 @@ class _EnterpriseSettingsScreenState extends State<EnterpriseSettingsScreen> {
             const SizedBox(height: 24),
             ElevatedButton(
               style: ElevatedButton.styleFrom(backgroundColor: Colors.greenAccent),
-              onPressed: _saveToPreferences, // यहाँ SharedPreferences वाला फंक्शन कॉल होगा
+              onPressed: _saveToPreferences,
               child: const Text('Save All Settings & Return', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
             ),
           ],
@@ -640,7 +716,7 @@ class _EnterpriseSettingsScreenState extends State<EnterpriseSettingsScreen> {
     );
   }
 }
-
+              
 
 // ============================================================================
 // AI CHAT & SEARCH SCREEN
