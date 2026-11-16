@@ -1,5 +1,5 @@
 // ============================================================================
-// FAMILY CARE VISION AI - ENTERPRISE MASTER EDITION (100% ERROR-FREE)
+// FAMILY CARE VISION AI - ENTERPRISE MASTER EDITION (100% CLEAN & SAFE)
 // ============================================================================
 
 import 'dart:convert';
@@ -63,7 +63,7 @@ Map<String, dynamic> globalEnterpriseCameras = {
   },
 };
 
-List> globalEnterpriseLogs = [
+List globalEnterpriseLogs = [
   {
     "camera": "Main Entrance Cam",
     "time": "14:20:10",
@@ -479,7 +479,7 @@ class AiVideoChatSearchScreen extends StatefulWidget {
 
 class _AiVideoChatSearchScreenState extends State<AiVideoChatSearchScreen> {
   final TextEditingController _msgController = TextEditingController();
-  final List> _messages = [
+  final List _messages = [
     {"role": "ai", "content": "Hello! I am your Family Care AI Assistant. Ask me anything about your active security feeds or threat logs."}
   ];
 
