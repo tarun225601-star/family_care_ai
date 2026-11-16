@@ -380,10 +380,12 @@ class EnterpriseCctvApp extends StatelessWidget {
 }
 
 // ============================================================================
-// 4. LIVE STREAM FRAME WIDGET
+// 4. LIVE STREAM FRAME WIDGET (LIVE MJPEG CCTV PLAYER)
 // ============================================================================
 
-class LiveCctvFeedRenderer extends StatefulWidget {
+import 'package:flutter_mjpeg/flutter_mjpeg.dart';
+
+class LiveCctvFeedRenderer extends StatelessWidget {
   final CameraNodeConfig camera;
   final bool isLiveTickEnabled;
 
@@ -394,60 +396,8 @@ class LiveCctvFeedRenderer extends StatefulWidget {
   });
 
   @override
-  State<LiveCctvFeedRenderer> createState() => _LiveCctvFeedRendererState();
-}
-
-class _LiveCctvFeedRendererState extends State<LiveCctvFeedRenderer> {
-  Timer? _frameTicker;
-  int _frameCounter = 0;
-
-  @override
-  void initState() {
-    super.initState();
-    _startTicker();
-  }
-
-  @override
-  void didUpdateWidget(covariant LiveCctvFeedRenderer oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.isLiveTickEnabled != widget.isLiveTickEnabled ||
-        oldWidget.camera.streamUrl != widget.camera.streamUrl) {
-      _startTicker();
-    }
-  }
-
-  void _startTicker() {
-    _frameTicker?.cancel();
-    if (widget.isLiveTickEnabled && widget.camera.isLiveStreamMode) {
-      _frameTicker = Timer.periodic(const Duration(seconds: 3), (timer) {
-        if (mounted) {
-          setState(() {
-            _frameCounter++;
-          });
-        }
-      });
-    }
-  }
-
-  @override
-  void dispose() {
-    _frameTicker?.cancel();
-    super.dispose();
-  }
-
-  String _buildLiveUrl() {
-    final base = widget.camera.streamUrl.trim();
-    if (base.isEmpty) return "";
-    if (base.contains("?")) {
-      return "$base&frame=$_frameCounter";
-    } else {
-      return "$base?frame=$_frameCounter";
-    }
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final activeUrl = _buildLiveUrl();
+    final activeUrl = camera.streamUrl.trim();
     if (activeUrl.isEmpty) {
       return const Center(
         child: Text("NO URL CONFIGURED",
@@ -455,28 +405,20 @@ class _LiveCctvFeedRendererState extends State<LiveCctvFeedRenderer> {
       );
     }
 
-    return Image.network(
-      activeUrl,
+    return Mjpeg(
+      isLive: isLiveTickEnabled && camera.isLiveStreamMode,
+      stream: activeUrl,
       fit: BoxFit.cover,
-      gaplessPlayback: true,
-      loadingBuilder: (context, child, loadingProgress) {
-        if (loadingProgress == null) {
-          widget.camera.lastStatus = "ONLINE";
-          return child;
-        }
-        return child;
-      },
-      errorBuilder: (context, error, stackTrace) {
-        widget.camera.lastStatus = "OFFLINE";
+      error: (context, error, stackTrace) {
         return Container(
           color: const Color(0xFF0F172A),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: const [
-              Icon(Icons.cloud_off, color: Colors.redAccent, size: 22),
+              Icon(Icons.videocam_off, color: Colors.redAccent, size: 22),
               SizedBox(height: 4),
               Text(
-                "STREAM OFFLINE",
+                "LIVE STREAM OFFLINE",
                 style: TextStyle(
                     color: Colors.redAccent,
                     fontSize: 9,
@@ -489,6 +431,7 @@ class _LiveCctvFeedRendererState extends State<LiveCctvFeedRenderer> {
     );
   }
 }
+
 
 // ============================================================================
 // 5. MAIN COMMAND DASHBOARD
