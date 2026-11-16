@@ -1,7 +1,7 @@
 // ============================================================================
 // FAMILY CARE VISION AI - 800+ LINES ENTERPRISE MASTER EDITION (ZERO-CRASH)
 // ============================================================================
-
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
