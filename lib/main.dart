@@ -618,7 +618,7 @@ class _EnterpriseSettingsScreenState extends State<EnterpriseSettingsScreen> {
                     String name = _camNameController.text.trim();
                     String url = _camUrlController.text.trim();
                     // अगर आपका मैप स्ट्रक्चर globalCameras है तो यह इस्तेमाल होगा:
-                    globalCameras[name] = url;
+                    globalEnterpriseCameras[name] = url;
                   });
                   _camNameController.clear();
                   _camUrlController.clear();
