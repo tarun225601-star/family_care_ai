@@ -224,7 +224,8 @@ class EnterpriseVault {
 // ============================================================================
 
 class QwenVisionIntelligenceService {
-  static Future> inspectCameraFrame({
+    static Future> inspectCameraFrame({
+      
     required CameraNodeConfig camera,
     required bool isAutoWatchdog,
   }) async {
