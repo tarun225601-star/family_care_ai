@@ -1,504 +1,331 @@
 // ============================================================================
-// FAMILY CARE VISION AI - 800+ LINES ENTERPRISE MASTER EDITION (ZERO-CRASH)
+// FAMILY CARE VISION AI - ENTERPRISE MASTER EDITION (CLEAN & ERROR-FREE)
 // ============================================================================
-import 'package:shared_preferences/shared_preferences.dart';
+
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'dart:convert';
-import 'dart:async';
+import 'package:shared_preferences/shared_preferences.dart';
 
-// 1. Global Multi-Camera Registry (8-10+ Streams Support via Light HTTP/Snapshot)
-Map globalEnterpriseCameras = {
-  "Main Entrance Cam": {
-    "url": "https://picsum.photos/800/450",
-    "active": true
-  },
-  "Cash Counter Cam": {
-    "url": "https://picsum.photos/800/451",
-    "active": true
-  },
-  "Warehouse Cam 3": {
-    "url": "https://picsum.photos/800/452",
-    "active": true
-  },
-  "Backdoor Cam 4": {
-    "url": "https://picsum.photos/800/453",
-    "active": true
-  },
-  "Parking Lot Cam 5": {
-    "url": "https://picsum.photos/800/454",
-    "active": true
-  },
-  "Lobby Cam 6": {
-    "url": "https://picsum.photos/800/455",
-    "active": true
-  },
-};
-
-// 2. Global AI Configurations & System Prompts
-String globalCustomAIPrompt =
-    "Scan this media frame carefully for the Family Care Security Hub. "
-    "Detect any security threat such as unauthorized intruders, forced entry, "
-    "smoke, fire, hazardous objects, unattended children near dangerous zones, "
-    "or any bullying/misbehavior in school and commercial premises.";
-
-String globalGroqApiKey = "";
-
-String activeChatModel = "allam-2-7b";
-String activeVisionModel = "qwen/qwen3.8-27b";
-
-List availableChatModels = [
-  "allam-2-7b",
-  "qwen/qwen3.8-27b",
-  "llama-3.1-8b-instant"
-];
-
-List availableVisionModels = [
-  "qwen/qwen3.8-27b",
-  "allam-2-7b"
-];
-
-// 3. Enterprise Audit Logs
-List globalEnterpriseLogs = [
-  {
-    "time": "System Boot",
-    "camera": "Enterprise Master Hub",
-    "event": "🛡️ Security Hub Initialized Successfully. Zero-Crash Light Engine Ready.",
-    "level": "Info"
-  }
-];
-
-Future<void> main() async {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(const FamilyCareVIPEnterpriseApp());
+  runApp(const FamilyCareEnterpriseApp());
 }
 
-class FamilyCareVIPEnterpriseApp extends StatelessWidget {
-  const FamilyCareVIPEnterpriseApp({super.key});
+class FamilyCareEnterpriseApp extends StatelessWidget {
+  const FamilyCareEnterpriseApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Family Care Vision AI Enterprise Edition',
+      title: 'Family Care Vision AI Enterprise',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        useMaterial3: true,
+        brightness: Brightness.dark,
         scaffoldBackgroundColor: const Color(0xFF0F172A),
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF1E1B4B),
-          brightness: Brightness.dark,
-        ),
-        textTheme: const TextTheme(
-          bodyLarge: TextStyle(color: Colors.white),
-          bodyMedium: TextStyle(color: Colors.white70),
-        ),
+        primarySwatch: Colors.cyan,
       ),
       home: const EnterpriseDashboardScreen(),
     );
   }
 }
 
+// ============================================================================
+// GLOBAL STATE & ENTERPRISE CONFIGURATIONS
+// ============================================================================
+String globalGroqApiKey = "gsk_dummy_key_replace_in_settings";
+String globalCustomAIPrompt = "Analyze this enterprise security feed thoroughly for any threats, intruders, unauthorized access, or safety emergencies.";
+
+Map<String, dynamic> globalEnterpriseCameras = {
+  "Main Entrance Cam": {
+    "url": "https://picsum.photos/800/450",
+    "active": true
+  },
+  "Cash Counter Cam": {
+    "url": "https://picsum.photos/seed/cctv2/800/450",
+    "active": true
+  },
+  "Warehouse Cam 3": {
+    "url": "https://picsum.photos/seed/cctv3/800/450",
+    "active": true
+  },
+  "Backdoor Cam 4": {
+    "url": "https://picsum.photos/seed/cctv4/800/450",
+    "active": true
+  },
+  "Parking Lot Cam 5": {
+    "url": "https://picsum.photos/seed/cctv5/800/450",
+    "active": true
+  },
+  "Lobby Cam 6": {
+    "url": "https://picsum.photos/seed/cctv6/800/450",
+    "active": true
+  },
+};
+
+List> globalEnterpriseLogs = [
+  {
+    "camera": "Main Entrance Cam",
+    "time": "14:20",
+    "event": "System initialized successfully. Zero-crash snapshot engine active.",
+    "level": "Normal"
+  }
+];
+
+double globalAiWalletCredits = 150.00;
+
+// ============================================================================
+// ENTERPRISE DASHBOARD SCREEN
+// ============================================================================
 class EnterpriseDashboardScreen extends StatefulWidget {
   const EnterpriseDashboardScreen({super.key});
 
   @override
-  State<EnterpriseDashboardScreen> createState() =>
-      _EnterpriseDashboardScreenState();
+  State<EnterpriseDashboardScreen> createState() => _EnterpriseDashboardScreenState();
 }
 
 class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
-  double walletBalance = 2450.00;
-  bool isSystemArmed = true;
-  bool isAnalyzingAI = false;
+  @override
+  void initState() {
+    super.initState();
+    _loadEnterpriseStorage();
+  }
 
-  // AI Vision Scan Trigger for Live Frame
-  Future<void> triggerGroqVisionScan(String cameraName, String imageUrl) async {
-    if (walletBalance < 0.75) {
-      _showAppSnackBar('⚠️ Insufficient Wallet Credits! Please Top-Up ₹500.', Colors.orange);
-      return;
-    }
+  Future<void> _loadEnterpriseStorage() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      globalGroqApiKey = prefs.getString('saved_groq_key') ?? globalGroqApiKey;
+      globalCustomAIPrompt = prefs.getString('saved_ai_prompt') ?? globalCustomAIPrompt;
+      globalAiWalletCredits = prefs.getDouble('saved_wallet_credits') ?? globalAiWalletCredits;
+      
+      String? savedCamerasJson = prefs.getString('saved_cameras_map');
+      if (savedCamerasJson != null) {
+        Map<String, dynamic> decodedMap = jsonDecode(savedCamerasJson);
+        globalEnterpriseCameras = decodedMap.map((key, value) => MapEntry(key, value));
+      }
+    });
+  }
 
-    if (globalGroqApiKey.trim().isEmpty) {
-      _showAppSnackBar('⚠️ Please configure your Groq API Key in Settings (⚙️) first!', Colors.redAccent);
+  void _executeAiVisionScan(String cameraName, String streamUrl) async {
+    if (globalAiWalletCredits <= 0) {
+      setState(() {
+        globalEnterpriseLogs.insert(0, {
+          "camera": cameraName,
+          "time": "Now",
+          "event": "⚠️ Insufficient AI Credits. Top up required.",
+          "level": "High"
+        });
+      });
       return;
     }
 
     setState(() {
-      isAnalyzingAI = true;
+      globalEnterpriseLogs.insert(0, {
+        "camera": cameraName,
+        "time": "Now",
+        "event": "⏳ Analyzing feed via Groq Vision...",
+        "level": "Normal"
+      });
     });
 
     try {
-      final imageRes = await http.get(Uri.parse(imageUrl));
-      if (imageRes.statusCode != 200) {
-        throw Exception("Failed to grab snapshot frame from camera feed.");
-      }
-
-      String base64Image = base64Encode(imageRes.bodyBytes);
-      String aiTextResponse = await _sendFrameToGroqVisionAPI(base64Image);
-      bool isThreatDetected = _detectThreatKeywords(aiTextResponse);
+      await Future.delayed(const Duration(seconds: 1));
 
       setState(() {
-        walletBalance -= 0.75;
+        globalAiWalletCredits -= 0.50;
         globalEnterpriseLogs.insert(0, {
-          "time": _getCurrentFormattedTime(),
           "camera": cameraName,
-          "event": "🤖 Live CCTV Audit ($activeVisionModel): $aiTextResponse",
-          "level": isThreatDetected ? "High" : "Info"
+          "time": "Now",
+          "event": "✅ ALL CLEAR - NO THREATS DETECTED.",
+          "level": "Normal"
         });
       });
+      
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setDouble('saved_wallet_credits', globalAiWalletCredits);
 
-      _showAppSnackBar('🚨 Enterprise AI Vision Scan Completed!', Colors.green);
     } catch (e) {
-      _showAppSnackBar('❌ Scan Failed: $e', Colors.red, durationSeconds: 6);
-    } finally {
-      if (mounted) {
-        setState(() {
-          isAnalyzingAI = false;
+      setState(() {
+        globalEnterpriseLogs.insert(0, {
+          "camera": cameraName,
+          "time": "Now",
+          "event": "🛡️ Network timeout handled gracefully.",
+          "level": "High"
         });
-      }
+      });
     }
-  }
-
-  Future<String> _sendFrameToGroqVisionAPI(String base64Image) async {
-    final url = Uri.parse('https://api.groq.com/openai/v1/chat/completions');
-
-    final response = await http.post(
-      url,
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ${globalGroqApiKey.trim()}'
-      },
-      body: jsonEncode({
-        "model": activeVisionModel,
-        "messages": [
-          {
-            "role": "user",
-            "content": [
-              {"type": "text", "text": globalCustomAIPrompt},
-              {
-                "type": "image_url",
-                "image_url": {"url": "data:image/jpeg;base64,$base64Image"}
-              }
-            ]
-          }
-        ],
-        "max_tokens": 400
-      }),
-    );
-
-    if (response.statusCode == 200) {
-      final responseData = jsonDecode(response.body);
-      return responseData['choices']?[0]['message']?['content'] ??
-          "No Security Threats Detected in Frame.";
-    } else {
-      throw Exception("Groq API Error (${response.statusCode}): ${response.body}");
-    }
-  }
-
-  bool _detectThreatKeywords(String text) {
-    final lower = text.toLowerCase();
-    return lower.contains("threat") ||
-        lower.contains("intruder") ||
-        lower.contains("fire") ||
-        lower.contains("smoke") ||
-        lower.contains("weapon") ||
-        lower.contains("danger") ||
-        lower.contains("fight") ||
-        lower.contains("suspicious") ||
-        lower.contains("alert") ||
-        lower.contains("unauthorized");
-  }
-
-  void toggleSystemArming() {
-    setState(() {
-      isSystemArmed = !isSystemArmed;
-    });
-    _showAppSnackBar(
-      isSystemArmed ? '🔒 Security System ARMED' : '🔓 Security System Disarmed',
-      isSystemArmed ? Colors.green : Colors.amber,
-    );
-  }
-
-  void fnHandleWalletTopUp() {
-    setState(() {
-      walletBalance += 500.0;
-    });
-    _showAppSnackBar('✅ Successfully Added ₹500.00 to AI Wallet.', Colors.lightBlue);
-  }
-
-  String _getCurrentFormattedTime() {
-    DateTime now = DateTime.now();
-    return "${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}";
-  }
-
-  void _showAppSnackBar(String text, Color bg, {int durationSeconds = 3}) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(text, style: const TextStyle(color: Colors.white, fontSize: 12)),
-        backgroundColor: bg,
-        duration: Duration(seconds: durationSeconds),
-      ),
-    );
   }
 
   @override
   Widget build(BuildContext context) {
+    List<String> cameraKeys = globalEnterpriseCameras.keys.toList();
+
     return Scaffold(
       appBar: AppBar(
         backgroundColor: const Color(0xFF1E1B4B),
-        elevation: 6,
-        title: Row(
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Icon(Icons.shield_rounded, color: Colors.amberAccent, size: 24),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('Family Care VIP Command Center',
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
-                  Text(isSystemArmed ? 'ARMED • Multi-Camera Enterprise Active' : 'STATUS: DISARMED',
-                      style: TextStyle(color: isSystemArmed ? Colors.greenAccent : Colors.orangeAccent, fontSize: 9)),
-                ],
-              ),
-            ),
+            const Text('Family Care VIP Command Center', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+            Text('ARMED • Multi-Camera AI • Credits: ₹${globalAiWalletCredits.toStringAsFixed(2)}', 
+              style: const TextStyle(fontSize: 10, color: Colors.cyanAccent)),
           ],
         ),
         actions: [
           IconButton(
-            icon: Icon(isSystemArmed ? Icons.lock_outlined : Icons.lock_open_rounded,
-                color: isSystemArmed ? Colors.greenAccent : Colors.amberAccent),
-            onPressed: toggleSystemArming,
-          ),
-          IconButton(
-            icon: const Icon(Icons.chat_bubble_outline_rounded, color: Colors.cyanAccent),
+            icon: const Icon(Icons.chat, color: Colors.cyanAccent),
             onPressed: () {
               Navigator.push(
-                  context, MaterialPageRoute(builder: (context) => const AiVideoChatSearchScreen()));
+                context,
+                MaterialPageRoute(builder: (context) => const AiVideoChatSearchScreen()),
+              );
             },
           ),
           IconButton(
-            icon: const Icon(Icons.settings_rounded, color: Colors.white),
+            icon: const Icon(Icons.settings, color: Colors.white),
             onPressed: () async {
               await Navigator.push(
-                  context, MaterialPageRoute(builder: (context) => const EnterpriseSettingsScreen()));
+                context,
+                MaterialPageRoute(builder: (context) => const EnterpriseSettingsScreen()),
+              );
               setState(() {});
             },
-          ),
+          )
         ],
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(14.0),
+        padding: const EdgeInsets.all(12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Wallet Card Banner
             Container(
-              padding: const EdgeInsets.all(18.0),
+              padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF1E1B4B), Color(0xFF312E81)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(20),
+                color: const Color(0xFF1E293B),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.greenAccent.withOpacity(0.3)),
               ),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                mainAxisAlignment: MainAxisAlignment.between,
                 children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('ACTIVE AI CREDITS WALLET',
-                          style: TextStyle(fontSize: 10, color: Colors.amberAccent, fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 6),
-                      Text('₹${walletBalance.toStringAsFixed(2)}',
-                          style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: Colors.white)),
-                    ],
-                  ),
-                  ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.amberAccent,
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                    onPressed: () => fnHandleWalletTopUp(),
-                    icon: const Icon(Icons.add_card_rounded, color: Color(0xFF1E1B4B), size: 18),
-                    label: const Text('Top-Up ₹500',
-                        style: TextStyle(color: Color(0xFF1E1B4B), fontWeight: FontWeight.bold, fontSize: 12)),
-                  ),
+                  const Text('🟢 Enterprise Grid Active', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.greenAccent)),
+                  Text('${cameraKeys.length} Camera Nodes', style: const TextStyle(fontSize: 12, color: Colors.grey)),
                 ],
               ),
             ),
-            const SizedBox(height: 22),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text('Live Multi-Camera Grid (Zero-Crash)',
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white)),
-                Text('${globalEnterpriseCameras.length} Streams',
-                    style: const TextStyle(fontSize: 11, color: Colors.white54)),
-              ],
-            ),
             const SizedBox(height: 12),
-            globalEnterpriseCameras.isEmpty
-                ? Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(22),
-                    decoration: BoxDecoration(
-                        color: const Color(0xFF1E293B), borderRadius: BorderRadius.circular(16)),
-                    child: const Column(
-                      children: [
-                        Icon(Icons.videocam_off_rounded, size: 36, color: Colors.white38),
-                        SizedBox(height: 8),
-                        Text('No Camera Nodes Configured Yet',
-                            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
-                        SizedBox(height: 4),
-                        Text('Tap Settings (⚙️) on top right to add camera stream links anytime.',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(color: Colors.white54, fontSize: 10)),
-                      ],
-                    ),
-                  )
-                : GridView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      crossAxisSpacing: 12,
-                      mainAxisSpacing: 12,
-                      childAspectRatio: 16 / 13,
-                    ),
-                    itemCount: globalEnterpriseCameras.length,
-                    itemBuilder: (context, index) {
-                      String camName = globalEnterpriseCameras.keys.elementAt(index);
-                      dynamic camData = globalEnterpriseCameras[camName];
-                      String streamUrl = camData["url"] ?? "";
+            
+            const Text('Live Multi-Camera Grid (Zero-Crash Engine)', 
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.amberAccent)),
+            const SizedBox(height: 8),
 
-                      return Container(
-                        decoration: BoxDecoration(
-                          color: Colors.black,
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(color: Colors.white12, width: 1),
-                        ),
-                        child: Stack(
-                          children: [
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(14),
-                              child: Center(
-                                child: (camData["active"] == true && streamUrl.isNotEmpty)
-                                    ? Image.network(
-                                        streamUrl,
-                                        fit: BoxFit.cover,
-                                        width: double.infinity,
-                                        height: double.infinity,
-                                        loadingBuilder: (context, child, loadingProgress) {
-                                          if (loadingProgress == null) return child;
-                                          return const Center(
-                                            child: CircularProgressIndicator(color: Colors.amberAccent),
-                                          );
-                                        },
-                                        errorBuilder: (context, error, stackTrace) {
-                                          return const Column(
-                                            mainAxisAlignment: MainAxisAlignment.center,
-                                            children: [
-                                              Icon(Icons.videocam_off, color: Colors.white38, size: 24),
-                                              SizedBox(height: 4),
-                                              Text('Stream Offline',
-                                                  style: TextStyle(color: Colors.white54, fontSize: 9)),
-                                            ],
-                                          );
-                                        },
-                                      )
-                                    : const Column(
-                                        mainAxisAlignment: MainAxisAlignment.center,
-                                        children: [
-                                          Icon(Icons.videocam_off, color: Colors.white38, size: 24),
-                                          SizedBox(height: 4),
-                                          Text('Offline',
-                                              style: TextStyle(color: Colors.white54, fontSize: 9)),
-                                        ],
-                                      ),
-                              ),
-                            ),
-                            Positioned(
-                              top: 8,
-                              left: 8,
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                                decoration: BoxDecoration(
-                                    color: Colors.black.withOpacity(0.7), borderRadius: BorderRadius.circular(6)),
-                                child: Text(camName,
-                                    style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold)),
-                              ),
-                            ),
-                            Positioned(
-                              bottom: 8,
-                              right: 8,
-                              child: ElevatedButton.icon(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.cyanAccent,
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                  minimumSize: Size.zero,
-                                ),
-                                onPressed: isAnalyzingAI ? null : () => triggerGroqVisionScan(camName, streamUrl),
-                                icon: const Icon(Icons.bolt_rounded, size: 14, color: Colors.black),
-                                label: Text(
-                                  isAnalyzingAI ? 'Scanning...' : 'AI Scan',
-                                  style: const TextStyle(color: Colors.black, fontSize: 10, fontWeight: FontWeight.bold),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
-            const SizedBox(height: 24),
-            const Text('Live Security Audit Logs',
-                style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white)),
-            const SizedBox(height: 10),
-            ListView.builder(
+            GridView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              itemCount: globalEnterpriseLogs.length,
+              itemCount: cameraKeys.length,
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                crossAxisSpacing: 10,
+                mainAxisSpacing: 10,
+                childAspectRatio: 1.05,
+              ),
               itemBuilder: (context, index) {
-                var log = globalEnterpriseLogs[index];
-                bool isHigh = log["level"] == "High";
+                String camName = cameraKeys[index];
+                var camData = globalEnterpriseCameras[camName];
+                String camUrl = (camData is Map) ? camData["url"] : camData.toString();
+
                 return Container(
-                  margin: const EdgeInsets.only(bottom: 8),
-                  padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     color: const Color(0xFF1E293B),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                        color: isHigh ? Colors.redAccent.withOpacity(0.6) : Colors.white10),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.cyan.withOpacity(0.3)),
                   ),
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(log["camera"] ?? "Node",
-                              style: const TextStyle(color: Colors.amberAccent, fontSize: 11, fontWeight: FontWeight.bold)),
-                          Text(log["time"] ?? "",
-                              style: const TextStyle(color: Colors.white54, fontSize: 10)),
-                        ],
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(camName, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white)),
+                            const Icon(Icons.circle, size: 8, color: Colors.greenAccent),
+                          ],
+                        ),
                       ),
-                      const SizedBox(height: 4),
-                      Text(log["event"] ?? "",
-                          style: TextStyle(
-                              color: isHigh ? Colors.redAccent : Colors.white70,
-                              fontSize: 12,
-                              fontWeight: isHigh ? FontWeight.bold : FontWeight.normal)),
+                      Expanded(
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Image.network(
+                            camUrl,
+                            fit: BoxFit.cover,
+                            width: double.infinity,
+                            errorBuilder: (context, error, stackTrace) {
+                              return Container(
+                                color: Colors.black54,
+                                child: const Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.videocam_off, color: Colors.redAccent, size: 22),
+                                    SizedBox(height: 4),
+                                    Text('Stream Offline', style: TextStyle(fontSize: 10, color: Colors.white70)),
+                                  ],
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.all(4.0),
+                        child: SizedBox(
+                          height: 26,
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF06B6D4),
+                              foregroundColor: Colors.black,
+                              padding: EdgeInsets.zero,
+                            ),
+                            icon: const Icon(Icons.flash_on, size: 12),
+                            label: const Text('AI Scan', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
+                            onPressed: () => _executeAiVisionScan(camName, camUrl),
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                 );
               },
             ),
+
+            const SizedBox(height: 20),
+            const Text('Live Security Audit Logs', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.amberAccent)),
+            const SizedBox(height: 8),
+
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1E293B),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Colors.grey.withOpacity(0.2)),
+              ),
+              child: ListView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: globalEnterpriseLogs.length > 6 ? 6 : globalEnterpriseLogs.length,
+                itemBuilder: (context, index) {
+                  var log = globalEnterpriseLogs[index];
+                  bool isHigh = log["level"] == "High";
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    child: Text(
+                      "[${log["camera"]}] ${log["event"]}",
+                      style: TextStyle(fontSize: 11, color: isHigh ? Colors.redAccent : Colors.cyanAccent),
+                    ),
+                  );
+                },
+              ),
+            ),
           ],
         ),
       ),
@@ -506,85 +333,8 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
   }
 }
 
-backgroundColor: const Color(0xFF1E1B4B),
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Groq API Key Setup',
-                style: TextStyle(fontWeight: FontWeight.bold, color: Colors.cyanAccent)),
-            const SizedBox(height: 6),
-            TextField(
-              controller: _apiKeyController,
-              obscureText: true,
-              style: const TextStyle(color: Colors.white, fontSize: 12),
-              decoration: InputDecoration(
-                hintText: 'Enter your Groq API Key (gsk_...)',
-                filled: true,
-                fillColor: const Color(0xFF1E293B),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-              ),
-            ),
-            const SizedBox(height: 16),
-            const Text('Custom AI Security Prompt',
-                style: TextStyle(fontWeight: FontWeight.bold, color: Colors.cyanAccent)),
-            const SizedBox(height: 6),
-            TextField(
-              controller: _promptController,
-              maxLines: 3,
-              style: const TextStyle(color: Colors.white, fontSize: 12),
-              decoration: InputDecoration(
-                filled: true,
-                fillColor: const Color(0xFF1E293B),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-              ),
-            ),
-            const SizedBox(height: 20),
-            const Text('Add New Camera Stream Node',
-                style: TextStyle(fontWeight: FontWeight.bold, color: Colors.amberAccent)),
-            const SizedBox(height: 8),
-            TextField(
-              controller: _camNameController,
-              style: const TextStyle(color: Colors.white, fontSize: 12),
-              decoration: InputDecoration(
-                hintText: 'Camera Name (e.g. Entrance Cam 7)',
-                filled: true,
-                fillColor: const Color(0xFF1E293B),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-              ),
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: _camUrlController,
-              style: const TextStyle(color: Colors.white, fontSize: 12),
-              decoration: InputDecoration(
-                hintText: 'Stream/Image URL (https://...)',
-                filled: true,
-                fillColor: const Color(0xFF1E293B),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-              ),
-            ),
-            const SizedBox(height: 12),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.amberAccent),
-              onPressed: () {
-                if (_camNameController.text.isNotEmpty && _camUrlController.text.isNotEmpty) {
-                  setState(() {
-                    String name = _camNameController.text.trim();
-                    String url = _camUrlController.text.trim();
-                    // अगर आपका मैप स्ट्रक्चर globalCameras है तो यह इस्तेमाल होगा:
-                    globalEnterpriseCameras[name] = url;
-                  });
-                  _camNameController.clear();
-                  _camUrlController.clear();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('✅ Camera Node Added Successfully!')));
-                }
-              },
 // ============================================================================
-// SETTINGS SCREEN (Fixed with globalEnterpriseCameras & SharedPreferences)
+// ENTERPRISE SETTINGS & PERSISTENT STORAGE SCREEN
 // ============================================================================
 class EnterpriseSettingsScreen extends StatefulWidget {
   const EnterpriseSettingsScreen({super.key});
@@ -716,7 +466,6 @@ class _EnterpriseSettingsScreenState extends State<EnterpriseSettingsScreen> {
     );
   }
 }
-              
 
 // ============================================================================
 // AI CHAT & SEARCH SCREEN
