@@ -1,5 +1,5 @@
 // ============================================================================
-// FAMILY CARE VISION AI - ULTIMATE ENTERPRISE CLOUD & AI MASTER EDITION
+// FAMILY CARE VISION AI - FINAL BULLETPROOF ENTERPRISE EDITION
 // ============================================================================
 
 import 'dart:async';
@@ -13,9 +13,6 @@ void main() async {
   runApp(const FamilyCareUltimateMasterApp());
 }
 
-// ============================================================================
-// 1. GLOBAL APP THEME & ROUTING CONFIGURATION
-// ============================================================================
 class FamilyCareUltimateMasterApp extends StatelessWidget {
   const FamilyCareUltimateMasterApp({super.key});
 
@@ -37,13 +34,12 @@ class FamilyCareUltimateMasterApp extends StatelessWidget {
 }
 
 // ============================================================================
-// 2. GLOBAL STATE REPOSITORIES & CONFIGURATIONS
+// GLOBAL STATE & SAFE VAR DECLARATIONS (NO TYPE ISSUES)
 // ============================================================================
 String globalMasterGroqApiKey = "gsk_enterprise_master_key_placeholder";
 String globalMasterAiPrompt = "Analyze this high-resolution multi-camera feed for intrusions, safety hazards, and anomalies.";
 double globalMasterWalletCredits = 1000.00;
 
-// Global Camera Registry supporting Cloud URLs (Accessible from any network)
 Map<String, dynamic> globalMasterCameraRegistry = {
   "Cloud Cam 01 - Main Gate": {
     "url": "https://picsum.photos/seed/master1/800/450",
@@ -71,7 +67,8 @@ Map<String, dynamic> globalMasterCameraRegistry = {
   },
 };
 
-List> globalMasterAuditLogs = [
+// Using 'var' to completely prevent any Dart parsing or generic type bracket bugs
+var globalMasterAuditLogs = [
   {
     "timestamp": "16:00:00",
     "node": "System Kernel",
@@ -81,7 +78,7 @@ List> globalMasterAuditLogs = [
 ];
 
 // ============================================================================
-// 3. MASTER COMMAND CENTER SCREEN (CCTV LCD GRID + AI SCAN ENGINE)
+// MASTER COMMAND CENTER SCREEN (CCTV LCD GRID + AI SCAN ENGINE)
 // ============================================================================
 class UltimateCommandCenterScreen extends StatefulWidget {
   const UltimateCommandCenterScreen({super.key});
@@ -132,7 +129,6 @@ class _UltimateCommandCenterScreenState extends State<UltimateCommandCenterScree
     }
   }
 
-  // AI Vision Scan Trigger Function
   void _executeAiVisionScan(String cameraName, String streamUrl) {
     if (globalMasterWalletCredits <= 0) {
       setState(() {
@@ -156,7 +152,6 @@ class _UltimateCommandCenterScreenState extends State<UltimateCommandCenterScree
       });
     });
 
-    // Simulating Groq AI Vision Analysis Response
     Future.delayed(const Duration(seconds: 2), () {
       if (!mounted) return;
       setState(() {
@@ -172,7 +167,7 @@ class _UltimateCommandCenterScreenState extends State<UltimateCommandCenterScree
 
   @override
   Widget build(BuildContext context) {
-    List<String> cameraKeys = globalMasterCameraRegistry.keys.toList();
+    var cameraKeys = globalMasterCameraRegistry.keys.toList();
 
     return Scaffold(
       appBar: AppBar(
@@ -216,7 +211,6 @@ class _UltimateCommandCenterScreenState extends State<UltimateCommandCenterScree
       ),
       body: Column(
         children: [
-          // Status Bar Banner
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             color: const Color(0xFF1E293B),
@@ -235,8 +229,6 @@ class _UltimateCommandCenterScreenState extends State<UltimateCommandCenterScree
               ],
             ),
           ),
-          
-          // CCTV LCD Grid View
           Expanded(
             child: Padding(
               padding: const EdgeInsets.all(6.0),
@@ -262,7 +254,6 @@ class _UltimateCommandCenterScreenState extends State<UltimateCommandCenterScree
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Title Header Bar
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
                           color: const Color(0xFF1E293B),
@@ -280,7 +271,6 @@ class _UltimateCommandCenterScreenState extends State<UltimateCommandCenterScree
                             ],
                           ),
                         ),
-                        // Stream View Window
                         Expanded(
                           child: Stack(
                             fit: StackFit.expand,
@@ -302,7 +292,6 @@ class _UltimateCommandCenterScreenState extends State<UltimateCommandCenterScree
                                   );
                                 },
                               ),
-                              // Watermark Overlay
                               Positioned(
                                 bottom: 2,
                                 left: 4,
@@ -318,7 +307,6 @@ class _UltimateCommandCenterScreenState extends State<UltimateCommandCenterScree
                             ],
                           ),
                         ),
-                        // AI Vision Scan Trigger Footer Button
                         SizedBox(
                           height: 22,
                           width: double.infinity,
@@ -347,7 +335,7 @@ class _UltimateCommandCenterScreenState extends State<UltimateCommandCenterScree
 }
 
 // ============================================================================
-// 4. CONFIGURATION SUITE (API KEYS, AI PROMPTS & CLOUD STREAM URLS)
+// CONFIGURATION SCREEN
 // ============================================================================
 class MasterConfigurationScreen extends StatefulWidget {
   const MasterConfigurationScreen({super.key});
@@ -479,7 +467,7 @@ class _MasterConfigurationScreenState extends State<MasterConfigurationScreen> {
 }
 
 // ============================================================================
-// 5. AUDIT LOGS SCREEN FOR AI & SYSTEM EVENTS
+// AUDIT LOGS SCREEN
 // ============================================================================
 class MasterAuditLogsScreen extends StatelessWidget {
   const MasterAuditLogsScreen({super.key});
