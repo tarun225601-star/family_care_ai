@@ -9,8 +9,8 @@
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
 
-    <!-- यह लाइन गिटहब या लोकल बिल्ड सर्वर पर प्लगइन के SDK वर्जन के झंझट को ओवरराइड कर देगी -->
-    <uses-sdk tools:overrideLibrary="io.flutter.plugins.camera, com.flutter_vlc_player" />
+    <!-- VLC को हटाने के बाद अब यहाँ सिर्फ camera प्लगइन का ओवरराइड रखा है -->
+    <uses-sdk tools:overrideLibrary="io.flutter.plugins.camera" />
 
     <application
         android:label="family_care_ai"
