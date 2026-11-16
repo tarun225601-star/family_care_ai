@@ -335,7 +335,7 @@ class _UltimateCommandCenterScreenState extends State<UltimateCommandCenterScree
 }
 
 // ============================================================================
-// CONFIGURATION SCREEN
+// 4. ONE-CLICK MASTER CONFIGURATION SUITE (SINGLE SAVE BUTTON FOR EVERYTHING)
 // ============================================================================
 class MasterConfigurationScreen extends StatefulWidget {
   const MasterConfigurationScreen({super.key});
@@ -350,19 +350,39 @@ class _MasterConfigurationScreenState extends State<MasterConfigurationScreen> {
   final TextEditingController _camNameController = TextEditingController();
   final TextEditingController _camUrlController = TextEditingController();
 
-  Future<void> _saveAllMasterSettings() async {
+  Future<void> _saveEverythingAtOnce() async {
     final prefs = await SharedPreferences.getInstance();
     
+    // 1. अगर यूजर ने नया कैमरा नाम और यूआरएल भरा है, तो उसे तुरंत रजिस्ट्री में जोड़ो
+    String newName = _camNameController.text.trim();
+    String newUrl = _camUrlController.text.trim();
+    
+    if (newName.isNotEmpty && newUrl.isNotEmpty) {
+      globalMasterCameraRegistry[newName] = {
+        "url": newUrl,
+        "networkType": "GLOBAL_CLOUD",
+        "resolution": "1080p",
+        "status": "ONLINE"
+      };
+    }
+
+    // 2. सारी वैल्यूज को अपडेट करो
     globalMasterGroqApiKey = _apiKeyController.text.trim();
     globalMasterAiPrompt = _promptController.text.trim();
 
+    // 3. SharedPreferences में सब कुछ एक साथ परमानेंट सेव करो
     await prefs.setString('master_groq_key', globalMasterGroqApiKey);
     await prefs.setString('master_ai_prompt', globalMasterAiPrompt);
     await prefs.setString('master_cameras_registry', jsonEncode(globalMasterCameraRegistry));
 
     if (!mounted) return;
+    
+    // 4. सक्सेस मैसेज दिखाओ और होम स्क्रीन पर वापस जाओ
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('✅ All Cloud Settings & Cameras Saved Permanently!'), backgroundColor: Colors.green),
+      const SnackBar(
+        content: Text('✅ All Settings & Cameras Saved Successfully!'), 
+        backgroundColor: Colors.green
+      ),
     );
     Navigator.pop(context);
   }
@@ -406,13 +426,13 @@ class _MasterConfigurationScreenState extends State<MasterConfigurationScreen> {
               ),
             ),
             const SizedBox(height: 20),
-            const Text('Add Any-Network Cloud Stream URL', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.greenAccent, fontSize: 12)),
+            const Text('Add New Cloud Stream Node', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.greenAccent, fontSize: 12)),
             const SizedBox(height: 8),
             TextField(
               controller: _camNameController,
               style: const TextStyle(fontSize: 12),
               decoration: InputDecoration(
-                hintText: 'Node Name (e.g. Remote Shop Cam)',
+                hintText: 'Node Name (e.g. Shop Cam 05)',
                 filled: true,
                 fillColor: const Color(0xFF1E293B),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
@@ -429,35 +449,17 @@ class _MasterConfigurationScreenState extends State<MasterConfigurationScreen> {
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 30),
+            // एकमात्र मास्टर सेव बटन - जो कैमरा जोड़ने और सेटिंग्स सेव करने दोनों का काम एक साथ करेगा
             ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.greenAccent, foregroundColor: Colors.black),
-              onPressed: () {
-                if (_camNameController.text.isNotEmpty && _camUrlController.text.isNotEmpty) {
-                  setState(() {
-                    String name = _camNameController.text.trim();
-                    String url = _camUrlController.text.trim();
-                    globalMasterCameraRegistry[name] = {
-                      "url": url,
-                      "networkType": "GLOBAL_CLOUD",
-                      "resolution": "1080p",
-                      "status": "ONLINE"
-                    };
-                  });
-                  _camNameController.clear();
-                  _camUrlController.clear();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('✅ Cloud Stream Node Added to Grid!')),
-                  );
-                }
-              },
-              child: const Text('Add Cloud Stream to Grid', style: TextStyle(fontWeight: FontWeight.bold)),
-            ),
-            const SizedBox(height: 24),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.cyanAccent, foregroundColor: Colors.black, minimumSize: const Size(double.infinity, 40)),
-              onPressed: _saveAllMasterSettings,
-              child: const Text('Save All Configurations Permanently', style: TextStyle(fontWeight: FontWeight.bold)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.cyanAccent, 
+                foregroundColor: Colors.black, 
+                minimumSize: const Size(double.infinity, 45),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              onPressed: _saveEverythingAtOnce,
+              child: const Text('Save All Configurations & Cameras', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
             ),
           ],
         ),
@@ -465,6 +467,7 @@ class _MasterConfigurationScreenState extends State<MasterConfigurationScreen> {
     );
   }
 }
+
 
 // ============================================================================
 // AUDIT LOGS SCREEN
