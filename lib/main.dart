@@ -1,5 +1,5 @@
 // ============================================================================
-// FAMILY CARE VISION AI - COMPLETE ENTERPRISE MASTER EDITION (1000+ Lines Setup)
+// FAMILY CARE VISION AI - 1000+ LINES COMPLETE ENTERPRISE MASTER EDITION
 // ============================================================================
 
 import 'package:flutter/material.dart';
@@ -9,7 +9,7 @@ import 'dart:convert';
 import 'dart:async';
 import 'dart:typed_data';
 
-// Global Enterprise Configurations
+// 1. Global Multi-Camera Registry (8-10+ RTSP Streams Support)
 Map<String, dynamic> globalEnterpriseCameras = {
   "Main Entrance Cam": {
     "ip": "rtsp://admin:password@192.168.1.100:554/stream1",
@@ -17,10 +17,19 @@ Map<String, dynamic> globalEnterpriseCameras = {
   },
   "Cash Counter Cam": {
     "ip": "rtsp://admin:password@192.168.1.101:554/stream1",
-    "active": false
-  }
+    "active": true
+  },
+  "Warehouse Cam 3": {
+    "ip": "rtsp://admin:password@192.168.1.102:554/stream1",
+    "active": true
+  },
+  "Backdoor Cam 4": {
+    "ip": "rtsp://admin:password@192.168.1.103:554/stream1",
+    "active": true
+  },
 };
 
+// 2. Global AI Configurations & System Prompts
 String globalCustomAIPrompt =
     "Scan this media frame carefully for the Family Care Security Hub. "
     "Detect any security threat such as unauthorized intruders, forced entry, "
@@ -29,6 +38,7 @@ String globalCustomAIPrompt =
 
 String globalGroqApiKey = "";
 
+// Working Models Configuration
 String activeChatModel = "allam-2-7b";
 String activeVisionModel = "qwen/qwen3.8-27b";
 
@@ -43,11 +53,12 @@ List<String> availableVisionModels = [
   "allam-2-7b"
 ];
 
+// 3. Enterprise Audit Logs (Fixed List Syntax)
 List> globalEnterpriseLogs = [
   {
     "time": "System Boot",
     "camera": "Enterprise Master Hub",
-    "event": "🛡️ Security Hub Initialized Successfully. Ready for RTSP Stream Live Audit.",
+    "event": "🛡️ Security Hub Initialized Successfully. Multi-Camera RTSP & AI Ready.",
     "level": "Info"
   }
 ];
@@ -95,6 +106,7 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
   bool isSystemArmed = true;
   bool isAnalyzingAI = false;
 
+  // VLC Controllers Map for 8-10+ Streams
   final Map<String, VlcPlayerController> _vlcControllers = {};
 
   @override
@@ -105,6 +117,7 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
     });
   }
 
+  // Background RTSP Initialization for multiple streams
   void _initializeRTSPStreams() {
     for (var controller in _vlcControllers.values) {
       try {
@@ -137,6 +150,7 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
     if (mounted) setState(() {});
   }
 
+  // AI Vision Scan Trigger for Live RTSP Frame
   Future<void> triggerGroqVisionScan(String cameraName) async {
     if (walletBalance < 0.75) {
       _showAppSnackBar('⚠️ Insufficient Wallet Credits! Please Top-Up ₹500.', Colors.orange);
@@ -144,7 +158,7 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
     }
 
     if (globalGroqApiKey.trim().isEmpty) {
-      _showAppSnackBar('⚠️ Please configure your API Key in Settings (⚙️) first!', Colors.redAccent);
+      _showAppSnackBar('⚠️ Please configure your Groq API Key in Settings (⚙️) first!', Colors.redAccent);
       return;
     }
 
@@ -305,7 +319,7 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
                   const Text('Family Care VIP Command Center',
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
-                  Text(isSystemArmed ? 'ARMED • Verified RTSP Nodes' : 'STATUS: DISARMED',
+                  Text(isSystemArmed ? 'ARMED • Multi-Camera RTSP Active' : 'STATUS: DISARMED',
                       style: TextStyle(color: isSystemArmed ? Colors.greenAccent : Colors.orangeAccent, fontSize: 9)),
                 ],
               ),
@@ -383,7 +397,7 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('Real CCTV RTSP Camera Nodes Grid',
+                const Text('Live Multi-Camera Grid (8-10+ Streams)',
                     style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white)),
                 Text('${globalEnterpriseCameras.length} Streams',
                     style: const TextStyle(fontSize: 11, color: Colors.white54)),
@@ -413,10 +427,10 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
                     gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 1,
+                      crossAxisCount: 2, // 2-Column Grid for multi-camera view
                       crossAxisSpacing: 12,
                       mainAxisSpacing: 12,
-                      childAspectRatio: 16 / 10,
+                      childAspectRatio: 16 / 13,
                     ),
                     itemCount: globalEnterpriseCameras.length,
                     itemBuilder: (context, index) {
@@ -445,10 +459,10 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
                                     : const Column(
                                         mainAxisAlignment: MainAxisAlignment.center,
                                         children: [
-                                          Icon(Icons.videocam_off, color: Colors.white38, size: 30),
-                                          SizedBox(height: 6),
-                                          Text('Stream Offline / Inactive',
-                                              style: TextStyle(color: Colors.white54, fontSize: 11)),
+                                          Icon(Icons.videocam_off, color: Colors.white38, size: 24),
+                                          SizedBox(height: 4),
+                                          Text('Offline',
+                                              style: TextStyle(color: Colors.white54, fontSize: 9)),
                                         ],
                                       ),
                               ),
@@ -457,26 +471,27 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
                               top: 8,
                               left: 8,
                               child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
                                 decoration: BoxDecoration(
                                     color: Colors.black.withOpacity(0.7), borderRadius: BorderRadius.circular(6)),
                                 child: Text(camName,
-                                    style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                                    style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold)),
                               ),
                             ),
                             Positioned(
-                              bottom: 10,
-                              right: 10,
+                              bottom: 8,
+                              right: 8,
                               child: ElevatedButton.icon(
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.cyanAccent,
-                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  minimumSize: Size.zero,
                                 ),
                                 onPressed: isAnalyzingAI ? null : () => triggerGroqVisionScan(camName),
-                                icon: const Icon(Icons.bolt_rounded, size: 16, color: Colors.black),
+                                icon: const Icon(Icons.bolt_rounded, size: 14, color: Colors.black),
                                 label: Text(
-                                  isAnalyzingAI ? 'Scanning...' : 'AI Scan Frame',
-                                  style: const TextStyle(color: Colors.black, fontSize: 11, fontWeight: FontWeight.bold),
+                                  isAnalyzingAI ? 'Scanning...' : 'AI Scan',
+                                  style: const TextStyle(color: Colors.black, fontSize: 10, fontWeight: FontWeight.bold),
                                 ),
                               ),
                             ),
@@ -536,7 +551,7 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
 }
 
 // ============================================================================
-// SETTINGS SCREEN (Manage RTSP Links & API Keys)
+// SETTINGS SCREEN (Manage API Keys, Prompts & RTSP Nodes)
 // ============================================================================
 class EnterpriseSettingsScreen extends StatefulWidget {
   const EnterpriseSettingsScreen({super.key});
@@ -574,7 +589,6 @@ class _EnterpriseSettingsScreenState extends State<EnterpriseSettingsScreen> {
               style: const TextStyle(color: Colors.white, fontSize: 12),
               decoration: InputDecoration(
                 hintText: 'Enter your Groq API Key (gsk_...)',
-                hintStyle: const TextStyle(color: Colors.white38),
                 filled: true,
                 fillColor: const Color(0xFF1E293B),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
@@ -595,15 +609,14 @@ class _EnterpriseSettingsScreenState extends State<EnterpriseSettingsScreen> {
               ),
             ),
             const SizedBox(height: 20),
-            const Text('Add New RTSP CCTV Camera Node',
+            const Text('Add New RTSP CCTV Camera Node (8-10+ support)',
                 style: TextStyle(fontWeight: FontWeight.bold, color: Colors.amberAccent)),
             const SizedBox(height: 8),
             TextField(
               controller: _camNameController,
               style: const TextStyle(color: Colors.white, fontSize: 12),
               decoration: InputDecoration(
-                hintText: 'Camera Name (e.g. Backdoor Cam)',
-                hintStyle: const TextStyle(color: Colors.white38),
+                hintText: 'Camera Name (e.g. Counter Cam 5)',
                 filled: true,
                 fillColor: const Color(0xFF1E293B),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
@@ -615,7 +628,6 @@ class _EnterpriseSettingsScreenState extends State<EnterpriseSettingsScreen> {
               style: const TextStyle(color: Colors.white, fontSize: 12),
               decoration: InputDecoration(
                 hintText: 'RTSP Link (rtsp://username:pass@ip:port/stream)',
-                hintStyle: const TextStyle(color: Colors.white38),
                 filled: true,
                 fillColor: const Color(0xFF1E293B),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
@@ -635,7 +647,7 @@ class _EnterpriseSettingsScreenState extends State<EnterpriseSettingsScreen> {
                   _camNameController.clear();
                   _camIpController.clear();
                   ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('✅ RTSP Node Added Successfully!')));
+                      const SnackBar(content: Text('✅ RTSP Camera Node Added Successfully!')));
                 }
               },
               child: const Text('Save & Add Camera Node', style: TextStyle(color: Color(0xFF1E1B4B))),
@@ -679,7 +691,7 @@ class _AiVideoChatSearchScreenState extends State<AiVideoChatSearchScreen> {
 
     setState(() {
       _messages.add({"role": "user", "content": text});
-      _messages.add({"role": "ai", "content": "Analyzing security query against active enterprise streams..."});
+      _messages.add({"role": "ai", "content": "Analyzing security query against active multi-camera enterprise streams..."});
     });
     _msgController.clear();
   }
@@ -720,13 +732,16 @@ class _AiVideoChatSearchScreenState extends State<AiVideoChatSearchScreen> {
             padding: const EdgeInsets.all(8),
             color: const Color(0xFF1E1B4B),
             child: Row(
+              widgets: [], // standard row children below
+            ),
+            child: Row(
               children: [
                 Expanded(
                   child: TextField(
                     controller: _msgController,
                     style: const TextStyle(color: Colors.white, fontSize: 12),
                     decoration: const InputDecoration(
-                      hintText: 'Ask about security status...',
+                      hintText: 'Ask about security status or logs...',
                       hintStyle: TextStyle(color: Colors.white38),
                       border: InputBorder.none,
                     ),
