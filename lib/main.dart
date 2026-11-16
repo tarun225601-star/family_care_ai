@@ -1,5 +1,5 @@
 // ============================================================================
-// FAMILY CARE VISION AI - ENTERPRISE MASTER EDITION (CLEAN & ERROR-FREE)
+// FAMILY CARE VISION AI - ENTERPRISE MASTER EDITION (FINAL & ERROR-FREE)
 // ============================================================================
 
 import 'dart:convert';
@@ -61,12 +61,20 @@ Map<String, dynamic> globalEnterpriseCameras = {
     "url": "https://picsum.photos/seed/cctv6/800/450",
     "active": true
   },
+  "Camera 7": {
+    "url": "https://picsum.photos/800/450",
+    "active": true
+  },
+  "Camera 8": {
+    "url": "https://picsum.photos/800/450",
+    "active": true
+  },
 };
 
 List> globalEnterpriseLogs = [
   {
     "camera": "Main Entrance Cam",
-    "time": "14:20",
+    "time": "14:20:10",
     "event": "System initialized successfully. Zero-crash snapshot engine active.",
     "level": "Normal"
   }
@@ -112,7 +120,7 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
         globalEnterpriseLogs.insert(0, {
           "camera": cameraName,
           "time": "Now",
-          "event": "⚠️ Insufficient AI Credits. Top up required.",
+          "event": "⚠️ [WALLET ERROR]: Insufficient AI Credits. Top up required.",
           "level": "High"
         });
       });
@@ -123,7 +131,7 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
       globalEnterpriseLogs.insert(0, {
         "camera": cameraName,
         "time": "Now",
-        "event": "⏳ Analyzing feed via Groq Vision...",
+        "event": "⏳ [AI SCANNING]: Analyzing feed from $cameraName via Groq Vision...",
         "level": "Normal"
       });
     });
@@ -136,7 +144,7 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
         globalEnterpriseLogs.insert(0, {
           "camera": cameraName,
           "time": "Now",
-          "event": "✅ ALL CLEAR - NO THREATS DETECTED.",
+          "event": "✅ [REPORT]: ALL CLEAR - NO THREATS DETECTED.",
           "level": "Normal"
         });
       });
@@ -149,7 +157,7 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
         globalEnterpriseLogs.insert(0, {
           "camera": cameraName,
           "time": "Now",
-          "event": "🛡️ Network timeout handled gracefully.",
+          "event": "🛡️ [HANDLED EXCEPTION]: Network timeout on $cameraName. App stability maintained.",
           "level": "High"
         });
       });
@@ -167,7 +175,7 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text('Family Care VIP Command Center', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
-            Text('ARMED • Multi-Camera AI • Credits: ₹${globalAiWalletCredits.toStringAsFixed(2)}', 
+            Text('ARMED • Multi-Camera Enterprise AI • Credits: ₹${globalAiWalletCredits.toStringAsFixed(2)}', 
               style: const TextStyle(fontSize: 10, color: Colors.cyanAccent)),
           ],
         ),
@@ -206,7 +214,7 @@ class _EnterpriseDashboardScreenState extends State<EnterpriseDashboardScreen> {
                 border: Border.all(color: Colors.greenAccent.withOpacity(0.3)),
               ),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.between,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   const Text('🟢 Enterprise Grid Active', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.greenAccent)),
                   Text('${cameraKeys.length} Camera Nodes', style: const TextStyle(fontSize: 12, color: Colors.grey)),
@@ -479,7 +487,7 @@ class AiVideoChatSearchScreen extends StatefulWidget {
 
 class _AiVideoChatSearchScreenState extends State<AiVideoChatSearchScreen> {
   final TextEditingController _msgController = TextEditingController();
-  final List _messages = [
+  final List> _messages = [
     {"role": "ai", "content": "Hello! I am your Family Care AI Assistant. Ask me anything about your active security feeds or threat logs."}
   ];
 
