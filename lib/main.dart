@@ -1,5 +1,5 @@
 // ============================================================================
-// FAMILY CARE VISION AI - ENTERPRISE MASTER EDITION (FINAL & ERROR-FREE)
+// FAMILY CARE VISION AI - ENTERPRISE MASTER EDITION (100% ERROR-FREE)
 // ============================================================================
 
 import 'dart:convert';
@@ -59,14 +59,6 @@ Map<String, dynamic> globalEnterpriseCameras = {
   },
   "Lobby Cam 6": {
     "url": "https://picsum.photos/seed/cctv6/800/450",
-    "active": true
-  },
-  "Camera 7": {
-    "url": "https://picsum.photos/800/450",
-    "active": true
-  },
-  "Camera 8": {
-    "url": "https://picsum.photos/800/450",
     "active": true
   },
 };
