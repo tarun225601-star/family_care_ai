@@ -92,7 +92,7 @@ class UltimateCommandCenterScreen extends StatefulWidget {
 
 class _UltimateCommandCenterScreenState extends State<UltimateCommandCenterScreen> {
   Timer? _heartbeatTimer;
-  bool _isSystemArmed = true;
+  final bool _isSystemArmed = true;
 
   @override
   void initState() {
