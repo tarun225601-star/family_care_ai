@@ -14,7 +14,7 @@ class SecurityIncidentLog {
   final String id;
   final String timestamp;
   final String cameraName;
-  final String severity; // CRITICAL, WARNING, INFO
+  final String severity;
   final String aiAnalysis;
   final String snapshotUrl;
   final String? base64Evidence;
@@ -100,7 +100,6 @@ class CameraNodeConfig {
 
 class EnterpriseVault {
   static String groqApiKey = "";
-  // ONLY QWEN MODEL FOR BOTH VISION PREVIEW AND CHAT
   static String qwenModelName = "qwen-2.5-vl-72b";
   static String masterSecurityPrompt =
       "Strict Security Audit: Inspect this CCTV frame ONLY for theft, shoplifting, forced entry, weapons, fire, or unauthorized person in restricted area. "
@@ -221,7 +220,7 @@ class EnterpriseVault {
 }
 
 // ============================================================================
-// 2. QWEN REAL-TIME VISION ENGINE & CLIP EXTRACTOR SERVICE (GROQ API)
+// 2. QWEN REAL-TIME VISION ENGINE SERVICE
 // ============================================================================
 
 class QwenVisionIntelligenceService {
@@ -241,7 +240,6 @@ class QwenVisionIntelligenceService {
     }
 
     try {
-      // 1. Fetch live frame bytes from camera stream URL
       final uri = Uri.parse(camera.streamUrl).replace(
         queryParameters: {
           ...Uri.parse(camera.streamUrl).queryParameters,
@@ -264,7 +262,6 @@ class QwenVisionIntelligenceService {
       Uint8List imageBytes = imgResponse.bodyBytes;
       String base64Image = base64Encode(imageBytes);
 
-      // 2. Send Base64 frame strictly to Qwen Model on Groq API
       final groqUri =
           Uri.parse("https://api.groq.com/openai/v1/chat/completions");
 
@@ -313,7 +310,6 @@ class QwenVisionIntelligenceService {
           EnterpriseVault.walletBalance -= 0.25;
         }
 
-        // Check if Qwen flagged an ALERT / THEFT / BREACH based on user prompt
         String upperReply = reply.toUpperCase();
         bool threatDetected = upperReply.contains("STATUS: ALERT") ||
             upperReply.contains("THEFT") ||
@@ -334,8 +330,7 @@ class QwenVisionIntelligenceService {
         return {
           "success": false,
           "isThreat": false,
-          "message":
-              "Qwen API Error (${aiResponse.statusCode}): $errMsg",
+          "message": "Qwen API Error (${aiResponse.statusCode}): $errMsg",
           "base64Image": null,
         };
       }
@@ -383,7 +378,7 @@ class EnterpriseCctvApp extends StatelessWidget {
 }
 
 // ============================================================================
-// 4. LIVE STREAM FRAME WIDGET (AUTO-REFRESHING REAL CCTV FEED)
+// 4. LIVE STREAM FRAME WIDGET
 // ============================================================================
 
 class LiveCctvFeedRenderer extends StatefulWidget {
@@ -494,7 +489,7 @@ class _LiveCctvFeedRendererState extends State<LiveCctvFeedRenderer> {
 }
 
 // ============================================================================
-// 5. MAIN COMMAND DASHBOARD (8+ CAMERAS + QWEN AUTO WATCHDOG + EVIDENCE LOGS)
+// 5. MAIN COMMAND DASHBOARD
 // ============================================================================
 
 class MainCommandDashboard extends StatefulWidget {
@@ -1124,7 +1119,7 @@ class _MainCommandDashboardState extends State<MainCommandDashboard> {
 }
 
 // ============================================================================
-// 6. FULL SCREEN CAMERA MONITOR WITH INTERACTIVE PINCH-ZOOM & PTZ CONTROLS
+// 6. FULL SCREEN CAMERA MONITOR
 // ============================================================================
 
 class FullScreenCameraMonitor extends StatefulWidget {
@@ -1218,7 +1213,7 @@ class _FullScreenCameraMonitorState extends State<FullScreenCameraMonitor> {
 }
 
 // ============================================================================
-// 7. EXTRACTED EVIDENCE CLIPS & BREACH LOGS SCREEN
+// 7. INCIDENT LOGS SCREEN
 // ============================================================================
 
 class IncidentLogsScreen extends StatefulWidget {
@@ -1331,7 +1326,7 @@ class _IncidentLogsScreenState extends State<IncidentLogsScreen> {
 }
 
 // ============================================================================
-// 8. SINGLE-SAVE MASTER CONFIGURATION & CAMERA MANAGER SUITE (ONLY QWEN)
+// 8. MASTER CONFIGURATION SCREEN
 // ============================================================================
 
 class MasterConfigurationScreen extends StatefulWidget {
@@ -1416,7 +1411,6 @@ class _MasterConfigurationScreenState extends State<MasterConfigurationScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // GROQ API KEY
             const Text("1. Groq API Key (gsk_...)",
                 style: TextStyle(
                     fontWeight: FontWeight.bold,
@@ -1436,8 +1430,6 @@ class _MasterConfigurationScreenState extends State<MasterConfigurationScreen> {
               ),
             ),
             const SizedBox(height: 14),
-
-            // ONLY QWEN MODEL INPUT (WORKS FOR BOTH VISION PREVIEW & CHAT)
             const Text("2. Qwen Model ID (Vision Preview + Chat)",
                 style: TextStyle(
                     fontWeight: FontWeight.bold,
@@ -1456,8 +1448,6 @@ class _MasterConfigurationScreenState extends State<MasterConfigurationScreen> {
               ),
             ),
             const SizedBox(height: 14),
-
-            // MASTER AI TRIGGER PROMPT
             const Text(
                 "3. Master Trigger Prompt (Defines When to Extract Clip)",
                 style: TextStyle(
@@ -1479,8 +1469,6 @@ class _MasterConfigurationScreenState extends State<MasterConfigurationScreen> {
               ),
             ),
             const SizedBox(height: 14),
-
-            // WATCHDOG SCAN INTERVAL SLIDER
             Text("4. Auto-Watchdog Scan Interval: $_scanInterval Seconds",
                 style: const TextStyle(
                     fontWeight: FontWeight.bold,
@@ -1495,10 +1483,7 @@ class _MasterConfigurationScreenState extends State<MasterConfigurationScreen> {
               label: "$_scanInterval s",
               onChanged: (val) => setState(() => _scanInterval = val.toInt()),
             ),
-
             const Divider(height: 24),
-
-            // ADD NEW CAMERA NODE
             const Text("5. Add New Cloud CCTV Stream Node",
                 style: TextStyle(
                     fontWeight: FontWeight.bold,
@@ -1509,7 +1494,7 @@ class _MasterConfigurationScreenState extends State<MasterConfigurationScreen> {
               controller: _newCamNameController,
               style: const TextStyle(fontSize: 12),
               decoration: InputDecoration(
-                hintText: "Camera Name (e.g. Cam 09 - Jewellery Vault)",
+                hintText: "Camera Name (e.g. Cam 09 - Vault)",
                 filled: true,
                 fillColor: const Color(0xFF161F30),
                 border:
@@ -1547,10 +1532,7 @@ class _MasterConfigurationScreenState extends State<MasterConfigurationScreen> {
                 if (val != null) setState(() => _selectedZone = val);
               },
             ),
-
             const SizedBox(height: 20),
-
-            // SINGLE MASTER SAVE BUTTON
             ElevatedButton.icon(
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.cyanAccent,
@@ -1566,10 +1548,7 @@ class _MasterConfigurationScreenState extends State<MasterConfigurationScreen> {
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
               ),
             ),
-
             const Divider(height: 32),
-
-            // MANAGE EXISTING CAMERAS
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
