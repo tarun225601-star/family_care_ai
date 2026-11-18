@@ -258,7 +258,7 @@ class QwenVisionIntelligenceService {
       );
 
       final imgResponse =
-          await http.get(uri).timeout(const Duration(seconds: 10));
+          await http.get(uri).timeout(const Duration(seconds: 60));
 
       if (imgResponse.statusCode != 200 || imgResponse.bodyBytes.isNotEmpty == false) {
         return {
@@ -513,7 +513,7 @@ class _MainCommandDashboardState extends State<MainCommandDashboard> {
         cam.lastFrameBytes = currentBytes;
 
         // If motion exceeds 12% threshold, wake up Qwen AI
-        if (diffPercent >= 12.0) {
+        if (diffPercent >= 5.0) {
           if (mounted) {
             setState(() {
               _currentWatchdogStatusText = "⚡ MOTION: ${cam.name} -> WAKING QWEN...";
