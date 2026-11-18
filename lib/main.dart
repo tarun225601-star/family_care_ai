@@ -246,20 +246,19 @@ class QwenVisionIntelligenceService {
     }
 
     try {
-            String cleanUrl = camera.streamUrl.replaceAll('/video', '');
-      if (!cleanUrl.endsWith('/shot.jpg')) {
-        cleanUrl = cleanUrl.endsWith('/') ? '${cleanUrl}shot.jpg' : '$cleanUrl/shot.jpg';
-      }
+      final snapUrl = camera.streamUrl.endsWith('/video')
+          ? camera.streamUrl.replaceAll('/video', '/shot.jpg')
+          : camera.streamUrl;
 
-      final uri = Uri.parse(cleanUrl).replace(
+      final uri = Uri.parse(snapUrl).replace(
         queryParameters: {
-          't': DateTime.now().millisecondsSinceEpoch.toString(),
+          ...Uri.parse(snapUrl).queryParameters,
+          '_t': DateTime.now().millisecondsSinceEpoch.toString(),
         },
       );
 
-
       final imgResponse =
-          await http.get(uri).timeout(const Duration(seconds: 60));
+          await http.get(uri).timeout(const Duration(seconds: 10));
 
       if (imgResponse.statusCode != 200 || imgResponse.bodyBytes.isNotEmpty == false) {
         return {
@@ -398,6 +397,7 @@ class EnterpriseCctvApp extends StatelessWidget {
 // ============================================================================
 // 4. LIVE STREAM FRAME WIDGET (LIVE MJPEG CCTV PLAYER)
 // ============================================================================
+
 class LiveCctvFeedRenderer extends StatelessWidget {
   final CameraNodeConfig camera;
   final bool isLiveTickEnabled;
@@ -413,78 +413,37 @@ class LiveCctvFeedRenderer extends StatelessWidget {
     final activeUrl = camera.streamUrl.trim();
     if (activeUrl.isEmpty) {
       return const Center(
-        child: Text(
-          "NO URL CONFIGURED",
-          style: TextStyle(color: Colors.redAccent),
-        ),
+        child: Text("NO URL CONFIGURED",
+            style: TextStyle(color: Colors.redAccent, fontSize: 10)),
       );
     }
 
-    // सुनिश्चित कर रहे हैं कि यूआरएल सीधे लाइव वीडियो स्ट्रीम (/video) पर जाए
-    String liveStreamUrl = activeUrl;
-    if (liveStreamUrl.endsWith('/shot.jpg')) {
-      liveStreamUrl = liveStreamUrl.replaceAll('/shot.jpg', '/video');
-    } else if (!liveStreamUrl.endsWith('/video') && !liveStreamUrl.endsWith('/')) {
-      liveStreamUrl = '$liveStreamUrl/video';
-    } else if (liveStreamUrl.endsWith('/')) {
-      liveStreamUrl = '${liveStreamUrl}video';
-    }
-
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.black,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.greenAccent, width: 1.5),
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(10),
-        child: isLiveTickEnabled
-            ? Image.network(
-                liveStreamUrl,
-                fit: BoxFit.cover,
-                // यह फ्रेमबिल्डर बिना किसी सेकंड के डिले के डायरेक्ट लाइव स्ट्रीम को रेंडर करेगा
-                frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
-                  if (frame != null) return child;
-                  return Container(
-                    color: Colors.black,
-                    child: const Center(
-                      child: CircularProgressIndicator(
-                        color: Colors.greenAccent,
-                        strokeWidth: 2,
-                      ),
-                    ),
-                  );
-                },
-                errorBuilder: (context, error, stackTrace) {
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: const [
-                        Icon(Icons.videocam_off, size: 36, color: Colors.redAccent),
-                        SizedBox(height: 6),
-                        Text(
-                          "Live Stream Offline",
-                          style: TextStyle(color: Colors.grey, fontSize: 11),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              )
-            : Container(
-                color: Colors.grey[900],
-                child: const Center(
-                  child: Text(
-                    "STREAM PAUSED",
-                    style: TextStyle(color: Colors.orangeAccent, fontSize: 11),
-                  ),
-                ),
+    return Mjpeg(
+      isLive: isLiveTickEnabled && camera.isLiveStreamMode,
+      stream: activeUrl,
+      fit: BoxFit.cover,
+      error: (context, error, stackTrace) {
+        return Container(
+          color: const Color(0xFF0F172A),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: const [
+              Icon(Icons.videocam_off, color: Colors.redAccent, size: 22),
+              SizedBox(height: 4),
+              Text(
+                "LIVE STREAM OFFLINE",
+                style: TextStyle(
+                    color: Colors.redAccent,
+                    fontSize: 9,
+                    fontWeight: FontWeight.bold),
               ),
-      ),
+            ],
+          ),
+        );
+      },
     );
   }
 }
-
 
 // ============================================================================
 // 5. MAIN COMMAND DASHBOARD (24x7 MOTION-TRIGGERED SILENT GUARD)
@@ -529,8 +488,8 @@ class _MainCommandDashboardState extends State<MainCommandDashboard> {
       for (var cam in armedCameras) {
         await _checkMotionAndWakeAi(cam);
       }
-    }); 
-  } 
+    });
+  }
 
   Future<void> _checkMotionAndWakeAi(CameraNodeConfig cam) async {
     try {
@@ -554,7 +513,7 @@ class _MainCommandDashboardState extends State<MainCommandDashboard> {
         cam.lastFrameBytes = currentBytes;
 
         // If motion exceeds 12% threshold, wake up Qwen AI
-        if (diffPercent >= 5.0) {
+        if (diffPercent >= 12.0) {
           if (mounted) {
             setState(() {
               _currentWatchdogStatusText = "⚡ MOTION: ${cam.name} -> WAKING QWEN...";
