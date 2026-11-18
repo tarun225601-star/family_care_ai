@@ -409,17 +409,25 @@ class LiveCctvFeedRenderer extends StatelessWidget {
     required this.isLiveTickEnabled,
   });
 
-  @override
+  
+    @override
   Widget build(BuildContext context) {
     final activeUrl = camera.streamUrl.trim();
     if (activeUrl.isEmpty) {
       return const Center(
-        child: Text("NO URL CONFIGURED",
-            style: TextStyle(color: Colors.redAccent, fontSize: 10)),
+        child: Text(
+          "NO URL CONFIGURED",
+          style: TextStyle(color: Colors.redAccent),
+        ),
       );
     }
 
-        // वीडियो स्ट्रीम (Mjpeg) की बजाय ताज़ा स्नैपशॉट दिखाने का विजेट
+    // साफ और पक्का स्नैपशॉट विजेट (बिना किसी एरर के)
+    String cleanUrl = activeUrl.replaceAll('/video', '');
+    if (!cleanUrl.endsWith('/shot.jpg')) {
+      cleanUrl = cleanUrl.endsWith('/') ? '${cleanUrl}shot.jpg' : '$cleanUrl/shot.jpg';
+    }
+
     return Container(
       decoration: BoxDecoration(
         color: Colors.black,
@@ -429,9 +437,7 @@ class LiveCctvFeedRenderer extends StatelessWidget {
       child: ClipRRect(
         borderRadius: BorderRadius.circular(10),
         child: Image.network(
-          activeUrl.replaceAll('/video', '').endsWith('/shot.jpg') 
-              ? activeUrl.replaceAll('/video', '') 
-              : '${activeUrl.replaceAll('/video', '')}/shot.jpg',
+          cleanUrl,
           fit: BoxFit.cover,
           errorBuilder: (context, error, stackTrace) {
             return Center(
@@ -440,7 +446,10 @@ class LiveCctvFeedRenderer extends StatelessWidget {
                 children: const [
                   Icon(Icons.videocam_off, size: 40, color: Colors.redAccent),
                   SizedBox(height: 8),
-                  Text("Snapshot Stream Offline", style: TextStyle(color: Colors.grey, fontSize: 12)),
+                  Text(
+                    "Snapshot Stream Offline",
+                    style: TextStyle(color: Colors.grey, fontSize: 12),
+                  ),
                 ],
               ),
             );
@@ -448,7 +457,8 @@ class LiveCctvFeedRenderer extends StatelessWidget {
         ),
       ),
     );
-
+  }
+  
 // ============================================================================
 // 5. MAIN COMMAND DASHBOARD (24x7 MOTION-TRIGGERED SILENT GUARD)
 // ============================================================================
