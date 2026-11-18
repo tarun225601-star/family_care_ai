@@ -420,9 +420,14 @@ class LiveCctvFeedRenderer extends StatelessWidget {
       );
     }
 
-    String cleanUrl = activeUrl.replaceAll('/video', '');
-    if (!cleanUrl.endsWith('/shot.jpg')) {
-      cleanUrl = cleanUrl.endsWith('/') ? '${cleanUrl}shot.jpg' : '$cleanUrl/shot.jpg';
+    // लाइव वीडियो के लिए हमेशा '/video' एंडपॉइंट इस्तेमाल होगा
+    String liveStreamUrl = activeUrl;
+    if (liveStreamUrl.endsWith('/shot.jpg')) {
+      liveStreamUrl = liveStreamUrl.replaceAll('/shot.jpg', '/video');
+    } else if (!liveStreamUrl.endsWith('/video') && !liveStreamUrl.endsWith('/')) {
+      liveStreamUrl = '$liveStreamUrl/video';
+    } else if (liveStreamUrl.endsWith('/')) {
+      liveStreamUrl = '${liveStreamUrl}video';
     }
 
     return Container(
@@ -433,25 +438,36 @@ class LiveCctvFeedRenderer extends StatelessWidget {
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(10),
-        child: Image.network(
-          cleanUrl,
-          fit: BoxFit.cover,
-          errorBuilder: (context, error, stackTrace) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: const [
-                  Icon(Icons.videocam_off, size: 40, color: Colors.redAccent),
-                  SizedBox(height: 8),
-                  Text(
-                    "Snapshot Stream Offline",
-                    style: TextStyle(color: Colors.grey, fontSize: 12),
+        child: isLiveTickEnabled
+            ? Image.network(
+                liveStreamUrl,
+                fit: BoxFit.cover,
+                gaplessPlayback: true,
+                errorBuilder: (context, error, stackTrace) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: const [
+                        Icon(Icons.videocam_off, size: 40, color: Colors.redAccent),
+                        SizedBox(height: 8),
+                        Text(
+                          "Live Stream Offline",
+                          style: TextStyle(color: Colors.grey, fontSize: 12),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              )
+            : Container(
+                color: Colors.grey[900],
+                child: const Center(
+                  child: Text(
+                    "STREAM PAUSED",
+                    style: TextStyle(color: Colors.orangeAccent, fontSize: 12),
                   ),
-                ],
+                ),
               ),
-            );
-          },
-        ),
       ),
     );
   }
