@@ -62,6 +62,7 @@ class CameraNodeConfig {
   bool isLiveStreamMode;
   String lastStatus;
   String lastAiVerdict;
+  Uint8List? lastFrameBytes; // Local motion tracking buffer
 
   CameraNodeConfig({
     required this.id,
@@ -72,6 +73,7 @@ class CameraNodeConfig {
     this.isLiveStreamMode = true,
     this.lastStatus = "ONLINE",
     this.lastAiVerdict = "CLEAR",
+    this.lastFrameBytes,
   });
 
   Map<String, dynamic> toJson() => {
@@ -106,6 +108,7 @@ class EnterpriseVault {
       "Strict Security Audit: Inspect this CCTV frame ONLY for theft, shoplifting, forced entry, weapons, fire, or unauthorized person in restricted area. "
       "If everything is normal, reply strictly starting with 'STATUS: SAFE'. "
       "If any theft, intrusion, or threat is detected, reply strictly starting with 'STATUS: ALERT - ' followed by exact details of what is happening.";
+  static String selectedLanguage = "English"; // Default language for logs & AI reply
   static double walletBalance = 1000.00;
   static int scanIntervalSeconds = 15;
   static bool autoWatchdogEnabled = false;
@@ -171,6 +174,7 @@ class EnterpriseVault {
     qwenModelName = prefs.getString('ent_qwen_model') ?? "qwen-2.5-vl-72b";
     masterSecurityPrompt =
         prefs.getString('ent_master_prompt') ?? masterSecurityPrompt;
+    selectedLanguage = prefs.getString('ent_lang') ?? "English";
     walletBalance = prefs.getDouble('ent_wallet') ?? 1000.00;
     scanIntervalSeconds = prefs.getInt('ent_scan_interval') ?? 15;
     autoWatchdogEnabled = prefs.getBool('ent_watchdog') ?? false;
@@ -204,6 +208,7 @@ class EnterpriseVault {
     await prefs.setString('ent_groq_key', groqApiKey);
     await prefs.setString('ent_qwen_model', qwenModelName);
     await prefs.setString('ent_master_prompt', masterSecurityPrompt);
+    await prefs.setString('ent_lang', selectedLanguage);
     await prefs.setDouble('ent_wallet', walletBalance);
     await prefs.setInt('ent_scan_interval', scanIntervalSeconds);
     await prefs.setBool('ent_watchdog', autoWatchdogEnabled);
@@ -221,13 +226,11 @@ class EnterpriseVault {
 }
 
 // ============================================================================
-// 2. QWEN REAL-TIME VISION ENGINE SERVICE
+// 2. QWEN REAL-TIME VISION ENGINE SERVICE (WITH MULTI-LANGUAGE SUPPORT)
 // ============================================================================
 
 class QwenVisionIntelligenceService {
-static Future inspectCameraFrame({
-      
-      
+  static Future inspectCameraFrame({
     required CameraNodeConfig camera,
     required bool isAutoWatchdog,
   }) async {
@@ -243,9 +246,13 @@ static Future inspectCameraFrame({
     }
 
     try {
-      final uri = Uri.parse(camera.streamUrl).replace(
+      final snapUrl = camera.streamUrl.endsWith('/video')
+          ? camera.streamUrl.replaceAll('/video', '/shot.jpg')
+          : camera.streamUrl;
+
+      final uri = Uri.parse(snapUrl).replace(
         queryParameters: {
-          ...Uri.parse(camera.streamUrl).queryParameters,
+          ...Uri.parse(snapUrl).queryParameters,
           '_t': DateTime.now().millisecondsSinceEpoch.toString(),
         },
       );
@@ -253,7 +260,7 @@ static Future inspectCameraFrame({
       final imgResponse =
           await http.get(uri).timeout(const Duration(seconds: 10));
 
-      if (imgResponse.statusCode != 200 || imgResponse.bodyBytes.isEmpty) {
+      if (imgResponse.statusCode != 200 || imgResponse.bodyBytes.isNotEmpty == false) {
         return {
           "success": false,
           "isThreat": false,
@@ -263,10 +270,15 @@ static Future inspectCameraFrame({
       }
 
       Uint8List imageBytes = imgResponse.bodyBytes;
+      camera.lastFrameBytes = imageBytes; // Update frame buffer for motion
       String base64Image = base64Encode(imageBytes);
 
       final groqUri =
           Uri.parse("https://api.groq.com/openai/v1/chat/completions");
+
+      // Injecting Language preference into the prompt instruction
+      String languageInstruction =
+          "CRITICAL: Reply and write your complete analysis strictly in the following language: ${EnterpriseVault.selectedLanguage}.";
 
       final payload = {
         "model": EnterpriseVault.qwenModelName.trim(),
@@ -277,7 +289,7 @@ static Future inspectCameraFrame({
               {
                 "type": "text",
                 "text":
-                    "Camera Location: ${camera.name} (${camera.zone}).\nInstruction: ${EnterpriseVault.masterSecurityPrompt}"
+                    "Camera Location: ${camera.name} (${camera.zone}).\n$languageInstruction\nInstruction: ${EnterpriseVault.masterSecurityPrompt}"
               },
               {
                 "type": "image_url",
@@ -319,7 +331,9 @@ static Future inspectCameraFrame({
             upperReply.contains("INTRUSION") ||
             upperReply.contains("UNAUTHORIZED") ||
             upperReply.contains("WEAPON") ||
-            upperReply.contains("BREACH");
+            upperReply.contains("BREACH") ||
+            upperReply.contains("खतरा") || // Hindi threat indicator
+            upperReply.contains("چوری"); // Urdu/Punjabi threat indicator
 
         return {
           "success": true,
@@ -384,8 +398,6 @@ class EnterpriseCctvApp extends StatelessWidget {
 // 4. LIVE STREAM FRAME WIDGET (LIVE MJPEG CCTV PLAYER)
 // ============================================================================
 
-
-
 class LiveCctvFeedRenderer extends StatelessWidget {
   final CameraNodeConfig camera;
   final bool isLiveTickEnabled;
@@ -433,9 +445,8 @@ class LiveCctvFeedRenderer extends StatelessWidget {
   }
 }
 
-
 // ============================================================================
-// 5. MAIN COMMAND DASHBOARD
+// 5. MAIN COMMAND DASHBOARD (24x7 MOTION-TRIGGERED SILENT GUARD)
 // ============================================================================
 
 class MainCommandDashboard extends StatefulWidget {
@@ -446,27 +457,11 @@ class MainCommandDashboard extends StatefulWidget {
 }
 
 class _MainCommandDashboardState extends State<MainCommandDashboard> {
-  Timer? _watchdogTimer;
-  int _watchdogRoundRobinIndex = 0;
-  bool _isWatchdogScanningNow = false;
-  bool _liveVideoStreamActive = true;
-  String _currentWatchdogStatusText = "IDLE (Manual Mode)";
-  final Set<String> _scanningCameraIds = {};
-
-  @override
-  void initState() {
-    super.initState();
-    _configureWatchdogTimer();
-  }
-
-  @override
-  void dispose() {
-    _watchdogTimer?.cancel();
-    super.dispose();
-  }
-
-    Timer? _motionWatchTimer;
+  Timer? _motionWatchTimer;
   bool _isScanningAi = false;
+  bool _liveVideoStreamActive = true;
+  String _currentWatchdogStatusText = "24x7 SILENT AI GUARD STANDBY";
+  final Set<String> _scanningCameraIds = {};
 
   @override
   void initState() {
@@ -480,13 +475,14 @@ class _MainCommandDashboardState extends State<MainCommandDashboard> {
     super.dispose();
   }
 
-  // 24x7 Silent Motion Check (बिना फालतू API खर्च किए, सिर्फ हलचल होने पर एआई जागेगा)
+  // 24x7 Silent Motion Check (No API Cost until physical movement occurs)
   void _start24x7SilentMotionLoop() {
     _motionWatchTimer?.cancel();
     _motionWatchTimer = Timer.periodic(const Duration(seconds: 3), (timer) async {
       if (!EnterpriseVault.autoWatchdogEnabled || _isScanningAi || EnterpriseVault.cameras.isEmpty) return;
 
-      List<CameraNodeConfig> armedCameras = EnterpriseVault.cameras.where((c) => c.isAiArmed).toList();
+      List<CameraNodeConfig> armedCameras =
+          EnterpriseVault.cameras.where((c) => c.isAiArmed).toList();
       if (armedCameras.isEmpty) return;
 
       for (var cam in armedCameras) {
@@ -497,11 +493,12 @@ class _MainCommandDashboardState extends State<MainCommandDashboard> {
 
   Future<void> _checkMotionAndWakeAi(CameraNodeConfig cam) async {
     try {
-      final snapUrl = cam.streamUrl.endsWith('/video') 
-          ? cam.streamUrl.replaceAll('/video', '/shot.jpg') 
+      final snapUrl = cam.streamUrl.endsWith('/video')
+          ? cam.streamUrl.replaceAll('/video', '/shot.jpg')
           : cam.streamUrl;
-          
-      final response = await http.get(Uri.parse(snapUrl)).timeout(const Duration(seconds: 3));
+
+      final response =
+          await http.get(Uri.parse(snapUrl)).timeout(const Duration(seconds: 3));
 
       if (response.statusCode == 200 && response.bodyBytes.isNotEmpty) {
         final currentBytes = response.bodyBytes;
@@ -511,15 +508,15 @@ class _MainCommandDashboardState extends State<MainCommandDashboard> {
           return;
         }
 
-        // लोकल पिक्सल का अंतर निकालना (Zero Cost)
+        // Local pixel difference check (Zero API Cost)
         double diffPercent = _calculateFrameDifference(cam.lastFrameBytes!, currentBytes);
         cam.lastFrameBytes = currentBytes;
 
-        // अगर हलचल 12% से ज्यादा है, तभी एआई जागेगा
+        // If motion exceeds 12% threshold, wake up Qwen AI
         if (diffPercent >= 12.0) {
           if (mounted) {
             setState(() {
-              _currentWatchdogStatusText = "⚡ MOTION: ${cam.name} -> WAKING AI...";
+              _currentWatchdogStatusText = "⚡ MOTION: ${cam.name} -> WAKING QWEN...";
             });
           }
           await _triggerAiForMotion(cam);
@@ -593,7 +590,6 @@ class _MainCommandDashboardState extends State<MainCommandDashboard> {
     }
   }
 
-
   Future<void> _manualInspectCamera(CameraNodeConfig camera) async {
     if (_scanningCameraIds.contains(camera.id)) return;
 
@@ -660,7 +656,7 @@ class _MainCommandDashboardState extends State<MainCommandDashboard> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  "Engine: ${EnterpriseVault.qwenModelName}\nActive Rule: ${EnterpriseVault.masterSecurityPrompt}",
+                  "Engine: ${EnterpriseVault.qwenModelName} | Lang: ${EnterpriseVault.selectedLanguage}\nActive Rule: ${EnterpriseVault.masterSecurityPrompt}",
                   style: const TextStyle(fontSize: 10, color: Colors.white54),
                 ),
                 const Divider(height: 16),
@@ -688,7 +684,11 @@ class _MainCommandDashboardState extends State<MainCommandDashboard> {
     required String analysis,
     required String? base64Clip,
   }) {
+    // 📳 HEAVY HAPTIC VIBRATION FEEDBACK & ALARM
     HapticFeedback.heavyImpact();
+    Future.delayed(const Duration(milliseconds: 300), () {
+      HapticFeedback.heavyImpact();
+    });
 
     final newLog = SecurityIncidentLog(
       id: "INC-${DateTime.now().millisecondsSinceEpoch}",
@@ -721,7 +721,7 @@ class _MainCommandDashboardState extends State<MainCommandDashboard> {
             SizedBox(width: 8),
             Expanded(
               child: Text(
-                "🚨 QWEN BREACH CLIP EXTRACTED!",
+                "🚨 QWEN BREACH EVIDENCE EXTRACTED!",
                 style: TextStyle(
                     color: Colors.redAccent,
                     fontSize: 13,
@@ -813,7 +813,7 @@ class _MainCommandDashboardState extends State<MainCommandDashboard> {
                   letterSpacing: 0.5),
             ),
             Text(
-              "Model: ${EnterpriseVault.qwenModelName} • Nodes: ${EnterpriseVault.cameras.length}",
+              "Model: ${EnterpriseVault.qwenModelName} • Lang: ${EnterpriseVault.selectedLanguage}",
               style: const TextStyle(fontSize: 9.5, color: Colors.cyanAccent),
               overflow: TextOverflow.ellipsis,
             ),
@@ -823,8 +823,7 @@ class _MainCommandDashboardState extends State<MainCommandDashboard> {
           IconButton(
             icon: Icon(
               _liveVideoStreamActive ? Icons.videocam : Icons.videocam_off,
-              color:
-                  _liveVideoStreamActive ? Colors.greenAccent : Colors.grey,
+              color: _liveVideoStreamActive ? Colors.greenAccent : Colors.grey,
               size: 20,
             ),
             tooltip: "Toggle Live Stream Mode",
@@ -878,7 +877,6 @@ class _MainCommandDashboardState extends State<MainCommandDashboard> {
                 MaterialPageRoute(
                     builder: (context) => const MasterConfigurationScreen()),
               );
-              _configureWatchdogTimer();
               setState(() {});
             },
           ),
@@ -903,7 +901,7 @@ class _MainCommandDashboardState extends State<MainCommandDashboard> {
                 const SizedBox(width: 6),
                 Expanded(
                   child: Text(
-                    "WATCHDOG: $_currentWatchdogStatusText",
+                    "GUARD: $_currentWatchdogStatusText",
                     style: TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.bold,
@@ -930,12 +928,11 @@ class _MainCommandDashboardState extends State<MainCommandDashboard> {
                             !EnterpriseVault.autoWatchdogEnabled;
                       });
                       await EnterpriseVault.saveAllToDisk();
-                      _configureWatchdogTimer();
                     },
                     child: Text(
                       EnterpriseVault.autoWatchdogEnabled
-                          ? "STOP QWEN"
-                          : "ARM QWEN",
+                          ? "PAUSE GUARD"
+                          : "ARM 24x7 GUARD",
                       style: const TextStyle(
                           fontSize: 10, fontWeight: FontWeight.bold),
                     ),
@@ -1054,7 +1051,7 @@ class _MainCommandDashboardState extends State<MainCommandDashboard> {
                                             ),
                                             SizedBox(height: 6),
                                             Text(
-                                              "QWEN SCANNING...",
+                                              "WAKING QWEN...",
                                               style: TextStyle(
                                                   fontSize: 9,
                                                   color: Colors.amberAccent,
@@ -1334,7 +1331,7 @@ class _IncidentLogsScreenState extends State<IncidentLogsScreen> {
 }
 
 // ============================================================================
-// 8. MASTER CONFIGURATION SCREEN
+// 8. MASTER CONFIGURATION SCREEN (WITH LANGUAGE SELECTOR)
 // ============================================================================
 
 class MasterConfigurationScreen extends StatefulWidget {
@@ -1352,7 +1349,7 @@ class _MasterConfigurationScreenState extends State<MasterConfigurationScreen> {
   final TextEditingController _newCamNameController = TextEditingController();
   final TextEditingController _newCamUrlController = TextEditingController();
   String _selectedZone = "HIGH-SECURITY";
-  late int _scanInterval;
+  String _selectedLang = "English";
 
   final List<String> _availableZones = [
     "HIGH-SECURITY",
@@ -1360,6 +1357,14 @@ class _MasterConfigurationScreenState extends State<MasterConfigurationScreen> {
     "INVENTORY",
     "RESTRICTED",
     "PUBLIC",
+  ];
+
+  final List<String> _languagesList = [
+    "English",
+    "Hindi (हिन्दी)",
+    "Punjabi (ਪੰਜਾਬੀ)",
+    "Haryanvi (हरियाणवी)",
+    "Spanglish / Hinglish",
   ];
 
   @override
@@ -1370,7 +1375,7 @@ class _MasterConfigurationScreenState extends State<MasterConfigurationScreen> {
         TextEditingController(text: EnterpriseVault.qwenModelName);
     _promptController =
         TextEditingController(text: EnterpriseVault.masterSecurityPrompt);
-    _scanInterval = EnterpriseVault.scanIntervalSeconds;
+    _selectedLang = EnterpriseVault.selectedLanguage;
   }
 
   Future<void> _saveEverythingAndExit() async {
@@ -1379,7 +1384,7 @@ class _MasterConfigurationScreenState extends State<MasterConfigurationScreen> {
         ? "qwen-2.5-vl-72b"
         : _qwenModelController.text.trim();
     EnterpriseVault.masterSecurityPrompt = _promptController.text.trim();
-    EnterpriseVault.scanIntervalSeconds = _scanInterval;
+    EnterpriseVault.selectedLanguage = _selectedLang;
 
     String camName = _newCamNameController.text.trim();
     String camUrl = _newCamUrlController.text.trim();
@@ -1400,7 +1405,7 @@ class _MasterConfigurationScreenState extends State<MasterConfigurationScreen> {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text("✅ Qwen Model, Rules & Cameras Saved Permanently!"),
+        content: Text("✅ Qwen Model, Rules, Language & Cameras Saved!"),
         backgroundColor: Colors.green,
       ),
     );
@@ -1448,7 +1453,7 @@ class _MasterConfigurationScreenState extends State<MasterConfigurationScreen> {
               controller: _qwenModelController,
               style: const TextStyle(fontSize: 12, color: Colors.greenAccent),
               decoration: InputDecoration(
-                hintText: "e.g. qwen-2.5-vl-72b or qwen/qwen3-32b",
+                hintText: "e.g. qwen-2.5-vl-72b",
                 filled: true,
                 fillColor: const Color(0xFF161F30),
                 border:
@@ -1456,8 +1461,32 @@ class _MasterConfigurationScreenState extends State<MasterConfigurationScreen> {
               ),
             ),
             const SizedBox(height: 14),
+            const Text("3. AI Log Output Language (Hindi, Punjabi, English...)",
+                style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.amberAccent,
+                    fontSize: 12)),
+            const SizedBox(height: 6),
+            DropdownButtonFormField<String>(
+              value: _selectedLang,
+              dropdownColor: const Color(0xFF161F30),
+              style: const TextStyle(fontSize: 12, color: Colors.white),
+              decoration: InputDecoration(
+                filled: true,
+                fillColor: const Color(0xFF161F30),
+                border:
+                    OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              items: _languagesList
+                  .map((l) => DropdownMenuItem(value: l, child: Text(l)))
+                  .toList(),
+              onChanged: (val) {
+                if (val != null) setState(() => _selectedLang = val);
+              },
+            ),
+            const SizedBox(height: 14),
             const Text(
-                "3. Master Trigger Prompt (Defines When to Extract Clip)",
+                "4. Master Trigger Prompt (Defines When to Extract Clip)",
                 style: TextStyle(
                     fontWeight: FontWeight.bold,
                     color: Colors.amberAccent,
@@ -1476,22 +1505,7 @@ class _MasterConfigurationScreenState extends State<MasterConfigurationScreen> {
                     OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
               ),
             ),
-            const SizedBox(height: 14),
-            Text("4. Auto-Watchdog Scan Interval: $_scanInterval Seconds",
-                style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: Colors.cyanAccent,
-                    fontSize: 12)),
-            Slider(
-              value: _scanInterval.toDouble(),
-              min: 5,
-              max: 60,
-              divisions: 11,
-              activeColor: Colors.cyanAccent,
-              label: "$_scanInterval s",
-              onChanged: (val) => setState(() => _scanInterval = val.toInt()),
-            ),
-            const Divider(height: 24),
+            const Divider(height: 28),
             const Text("5. Add New Cloud CCTV Stream Node",
                 style: TextStyle(
                     fontWeight: FontWeight.bold,
