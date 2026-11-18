@@ -500,7 +500,9 @@ class _MainCommandDashboardState extends State<MainCommandDashboard> {
 
       for (var cam in armedCameras) {
         await _checkMotionAndWakeAi(cam);
-      
+      }
+    }); 
+  } 
 
   Future<void> _checkMotionAndWakeAi(CameraNodeConfig cam) async {
     try {
