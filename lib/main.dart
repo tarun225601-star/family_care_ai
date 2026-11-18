@@ -420,7 +420,7 @@ class LiveCctvFeedRenderer extends StatelessWidget {
       );
     }
 
-    // लाइव वीडियो के लिए हमेशा '/video' एंडपॉइंट इस्तेमाल होगा
+    // सुनिश्चित कर रहे हैं कि यूआरएल सीधे लाइव वीडियो स्ट्रीम (/video) पर जाए
     String liveStreamUrl = activeUrl;
     if (liveStreamUrl.endsWith('/shot.jpg')) {
       liveStreamUrl = liveStreamUrl.replaceAll('/shot.jpg', '/video');
@@ -442,17 +442,29 @@ class LiveCctvFeedRenderer extends StatelessWidget {
             ? Image.network(
                 liveStreamUrl,
                 fit: BoxFit.cover,
-                gaplessPlayback: true,
+                // यह फ्रेमबिल्डर बिना किसी सेकंड के डिले के डायरेक्ट लाइव स्ट्रीम को रेंडर करेगा
+                frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
+                  if (frame != null) return child;
+                  return Container(
+                    color: Colors.black,
+                    child: const Center(
+                      child: CircularProgressIndicator(
+                        color: Colors.greenAccent,
+                        strokeWidth: 2,
+                      ),
+                    ),
+                  );
+                },
                 errorBuilder: (context, error, stackTrace) {
                   return Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: const [
-                        Icon(Icons.videocam_off, size: 40, color: Colors.redAccent),
-                        SizedBox(height: 8),
+                        Icon(Icons.videocam_off, size: 36, color: Colors.redAccent),
+                        SizedBox(height: 6),
                         Text(
                           "Live Stream Offline",
-                          style: TextStyle(color: Colors.grey, fontSize: 12),
+                          style: TextStyle(color: Colors.grey, fontSize: 11),
                         ),
                       ],
                     ),
@@ -464,7 +476,7 @@ class LiveCctvFeedRenderer extends StatelessWidget {
                 child: const Center(
                   child: Text(
                     "STREAM PAUSED",
-                    style: TextStyle(color: Colors.orangeAccent, fontSize: 12),
+                    style: TextStyle(color: Colors.orangeAccent, fontSize: 11),
                   ),
                 ),
               ),
