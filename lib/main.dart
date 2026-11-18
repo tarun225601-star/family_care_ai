@@ -246,16 +246,17 @@ class QwenVisionIntelligenceService {
     }
 
     try {
-      final snapUrl = camera.streamUrl.endsWith('/video')
-          ? camera.streamUrl.replaceAll('/video', '/shot.jpg')
-          : camera.streamUrl;
+            String cleanUrl = camera.streamUrl.replaceAll('/video', '');
+      if (!cleanUrl.endsWith('/shot.jpg')) {
+        cleanUrl = cleanUrl.endsWith('/') ? '${cleanUrl}shot.jpg' : '$cleanUrl/shot.jpg';
+      }
 
-      final uri = Uri.parse(snapUrl).replace(
+      final uri = Uri.parse(cleanUrl).replace(
         queryParameters: {
-          ...Uri.parse(snapUrl).queryParameters,
-          '_t': DateTime.now().millisecondsSinceEpoch.toString(),
+          't': DateTime.now().millisecondsSinceEpoch.toString(),
         },
       );
+
 
       final imgResponse =
           await http.get(uri).timeout(const Duration(seconds: 60));
