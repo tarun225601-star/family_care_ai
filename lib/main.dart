@@ -398,7 +398,6 @@ class EnterpriseCctvApp extends StatelessWidget {
 // ============================================================================
 // 4. LIVE STREAM FRAME WIDGET (LIVE MJPEG CCTV PLAYER)
 // ============================================================================
-
 class LiveCctvFeedRenderer extends StatelessWidget {
   final CameraNodeConfig camera;
   final bool isLiveTickEnabled;
@@ -409,8 +408,7 @@ class LiveCctvFeedRenderer extends StatelessWidget {
     required this.isLiveTickEnabled,
   });
 
-  
-    @override
+  @override
   Widget build(BuildContext context) {
     final activeUrl = camera.streamUrl.trim();
     if (activeUrl.isEmpty) {
@@ -422,7 +420,6 @@ class LiveCctvFeedRenderer extends StatelessWidget {
       );
     }
 
-    // साफ और पक्का स्नैपशॉट विजेट (बिना किसी एरर के)
     String cleanUrl = activeUrl.replaceAll('/video', '');
     if (!cleanUrl.endsWith('/shot.jpg')) {
       cleanUrl = cleanUrl.endsWith('/') ? '${cleanUrl}shot.jpg' : '$cleanUrl/shot.jpg';
@@ -459,6 +456,8 @@ class LiveCctvFeedRenderer extends StatelessWidget {
     );
   }
 }
+
+
 // ============================================================================
 // 5. MAIN COMMAND DASHBOARD (24x7 MOTION-TRIGGERED SILENT GUARD)
 // ============================================================================
