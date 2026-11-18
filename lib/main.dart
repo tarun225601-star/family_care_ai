@@ -465,40 +465,101 @@ class _MainCommandDashboardState extends State<MainCommandDashboard> {
     super.dispose();
   }
 
-  void _configureWatchdogTimer() {
-    _watchdogTimer?.cancel();
-    if (EnterpriseVault.autoWatchdogEnabled) {
-      setState(() {
-        _currentWatchdogStatusText =
-            "QWEN ARMED (${EnterpriseVault.scanIntervalSeconds}s loop)";
-      });
-      _watchdogTimer = Timer.periodic(
-        Duration(seconds: EnterpriseVault.scanIntervalSeconds),
-        (timer) => _runWatchdogCycle(),
-      );
-    } else {
-      setState(() {
-        _currentWatchdogStatusText = "STANDBY (Click ARM QWEN to Start)";
-      });
-    }
+    Timer? _motionWatchTimer;
+  bool _isScanningAi = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _start24x7SilentMotionLoop();
   }
 
-  Future<void> _runWatchdogCycle() async {
-    if (_isWatchdogScanningNow || EnterpriseVault.cameras.isEmpty) return;
+  @override
+  void dispose() {
+    _motionWatchTimer?.cancel();
+    super.dispose();
+  }
 
-    List<CameraNodeConfig> armedCameras =
-        EnterpriseVault.cameras.where((c) => c.isAiArmed).toList();
-    if (armedCameras.isEmpty) return;
+  // 24x7 Silent Motion Check (बिना फालतू API खर्च किए, सिर्फ हलचल होने पर एआई जागेगा)
+  void _start24x7SilentMotionLoop() {
+    _motionWatchTimer?.cancel();
+    _motionWatchTimer = Timer.periodic(const Duration(seconds: 3), (timer) async {
+      if (!EnterpriseVault.autoWatchdogEnabled || _isScanningAi || EnterpriseVault.cameras.isEmpty) return;
 
-    _isWatchdogScanningNow = true;
-    final targetCam =
-        armedCameras[_watchdogRoundRobinIndex % armedCameras.length];
-    _watchdogRoundRobinIndex++;
+      List<CameraNodeConfig> armedCameras = EnterpriseVault.cameras.where((c) => c.isAiArmed).toList();
+      if (armedCameras.isEmpty) return;
+
+      for (var cam in armedCameras) {
+        await _checkMotionAndWakeAi(cam);
+      }
+    });
+  }
+
+  Future<void> _checkMotionAndWakeAi(CameraNodeConfig cam) async {
+    try {
+      final snapUrl = cam.streamUrl.endsWith('/video') 
+          ? cam.streamUrl.replaceAll('/video', '/shot.jpg') 
+          : cam.streamUrl;
+          
+      final response = await http.get(Uri.parse(snapUrl)).timeout(const Duration(seconds: 3));
+
+      if (response.statusCode == 200 && response.bodyBytes.isNotEmpty) {
+        final currentBytes = response.bodyBytes;
+
+        if (cam.lastFrameBytes == null) {
+          cam.lastFrameBytes = currentBytes;
+          return;
+        }
+
+        // लोकल पिक्सल का अंतर निकालना (Zero Cost)
+        double diffPercent = _calculateFrameDifference(cam.lastFrameBytes!, currentBytes);
+        cam.lastFrameBytes = currentBytes;
+
+        // अगर हलचल 12% से ज्यादा है, तभी एआई जागेगा
+        if (diffPercent >= 12.0) {
+          if (mounted) {
+            setState(() {
+              _currentWatchdogStatusText = "⚡ MOTION: ${cam.name} -> WAKING AI...";
+            });
+          }
+          await _triggerAiForMotion(cam);
+        } else {
+          if (mounted) {
+            setState(() {
+              _currentWatchdogStatusText = "💤 24x7 GUARD ACTIVE (NO MOTION)";
+            });
+          }
+        }
+      }
+    } catch (_) {}
+  }
+
+  double _calculateFrameDifference(Uint8List prev, Uint8List curr) {
+    int minLen = prev.length < curr.length ? prev.length : curr.length;
+    if (minLen == 0) return 0.0;
+    int step = (minLen / 500).ceil();
+    if (step < 1) step = 1;
+
+    int changedSamples = 0;
+    int totalSamples = 0;
+
+    for (int i = 100; i < minLen - 100; i += step) {
+      totalSamples++;
+      if ((prev[i] - curr[i]).abs() > 25) {
+        changedSamples++;
+      }
+    }
+    if (totalSamples == 0) return 0.0;
+    return (changedSamples / totalSamples) * 100.0;
+  }
+
+  Future<void> _triggerAiForMotion(CameraNodeConfig targetCam) async {
+    if (_isScanningAi) return;
+    _isScanningAi = true;
 
     if (mounted) {
       setState(() {
         _scanningCameraIds.add(targetCam.id);
-        _currentWatchdogStatusText = "Qwen Inspecting: ${targetCam.name}...";
       });
     }
 
@@ -510,7 +571,7 @@ class _MainCommandDashboardState extends State<MainCommandDashboard> {
     if (mounted) {
       setState(() {
         _scanningCameraIds.remove(targetCam.id);
-        _isWatchdogScanningNow = false;
+        _isScanningAi = false;
         _currentWatchdogStatusText =
             "Qwen Checked: ${targetCam.name} (${DateTime.now().toString().substring(11, 19)})";
       });
@@ -531,6 +592,7 @@ class _MainCommandDashboardState extends State<MainCommandDashboard> {
       await EnterpriseVault.saveAllToDisk();
     }
   }
+
 
   Future<void> _manualInspectCamera(CameraNodeConfig camera) async {
     if (_scanningCameraIds.contains(camera.id)) return;
