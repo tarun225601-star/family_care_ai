@@ -419,32 +419,35 @@ class LiveCctvFeedRenderer extends StatelessWidget {
       );
     }
 
-    return Mjpeg(
-      isLive: isLiveTickEnabled && camera.isLiveStreamMode,
-      stream: activeUrl,
-      fit: BoxFit.cover,
-      error: (context, error, stackTrace) {
-        return Container(
-          color: const Color(0xFF0F172A),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: const [
-              Icon(Icons.videocam_off, color: Colors.redAccent, size: 22),
-              SizedBox(height: 4),
-              Text(
-                "LIVE STREAM OFFLINE",
-                style: TextStyle(
-                    color: Colors.redAccent,
-                    fontSize: 9,
-                    fontWeight: FontWeight.bold),
+        // वीडियो स्ट्रीम (Mjpeg) की बजाय ताज़ा स्नैपशॉट दिखाने का विजेट
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.black,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.greenAccent, width: 1.5),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(10),
+        child: Image.network(
+          activeUrl.replaceAll('/video', '').endsWith('/shot.jpg') 
+              ? activeUrl.replaceAll('/video', '') 
+              : '${activeUrl.replaceAll('/video', '')}/shot.jpg',
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: const [
+                  Icon(Icons.videocam_off, size: 40, color: Colors.redAccent),
+                  SizedBox(height: 8),
+                  Text("Snapshot Stream Offline", style: TextStyle(color: Colors.grey, fontSize: 12)),
+                ],
               ),
-            ],
-          ),
-        );
-      },
+            );
+          },
+        ),
+      ),
     );
-  }
-}
 
 // ============================================================================
 // 5. MAIN COMMAND DASHBOARD (24x7 MOTION-TRIGGERED SILENT GUARD)
