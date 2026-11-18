@@ -458,7 +458,7 @@ class LiveCctvFeedRenderer extends StatelessWidget {
       ),
     );
   }
-  
+}
 // ============================================================================
 // 5. MAIN COMMAND DASHBOARD (24x7 MOTION-TRIGGERED SILENT GUARD)
 // ============================================================================
