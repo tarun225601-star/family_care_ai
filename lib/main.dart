@@ -80,6 +80,8 @@ class CameraNodeConfig {
   String lastStatus;
   String lastAiVerdict;
   Uint8List? lastFrameBytes;
+  DateTime? lastQwenCallTime;
+  Uint8List? lastQwenSentFrameBytes;
 
   CameraNodeConfig({
     required this.id,
@@ -91,6 +93,8 @@ class CameraNodeConfig {
     this.lastStatus = "ONLINE",
     this.lastAiVerdict = "CLEAR",
     this.lastFrameBytes,
+    this.lastQwenCallTime,
+    this.lastQwenSentFrameBytes,
   });
 
   Map<String, dynamic> toJson() => {
@@ -162,7 +166,7 @@ class EnterpriseVault {
       modePromptPresets["HOME_CARE_THEFT"]!;
   static String selectedLanguage = "Hindi (हिन्दी)";
   static double walletBalance = 1000.00;
-  static int scanIntervalSeconds = 15;
+  static int qwenCooldownSeconds = 45;
   static bool autoWatchdogEnabled = false;
   static bool offlineYoloEnabled = true;
   static bool offlineMlKitMediaPipeEnabled = true;
@@ -233,7 +237,7 @@ class EnterpriseVault {
             modePromptPresets["HOME_CARE_THEFT"]!);
     selectedLanguage = prefs.getString('ent_lang') ?? "Hindi (हिन्दी)";
     walletBalance = prefs.getDouble('ent_wallet') ?? 1000.00;
-    scanIntervalSeconds = prefs.getInt('ent_scan_interval') ?? 15;
+    qwenCooldownSeconds = prefs.getInt('ent_qwen_cooldown') ?? 45;
     autoWatchdogEnabled = prefs.getBool('ent_watchdog') ?? false;
     offlineYoloEnabled = prefs.getBool('ent_edge_yolo') ?? true;
     offlineMlKitMediaPipeEnabled = prefs.getBool('ent_edge_mlkit') ?? true;
@@ -271,7 +275,7 @@ class EnterpriseVault {
     await prefs.setString('ent_master_prompt', masterSecurityPrompt);
     await prefs.setString('ent_lang', selectedLanguage);
     await prefs.setDouble('ent_wallet', walletBalance);
-    await prefs.setInt('ent_scan_interval', scanIntervalSeconds);
+    await prefs.setInt('ent_qwen_cooldown', qwenCooldownSeconds);
     await prefs.setBool('ent_watchdog', autoWatchdogEnabled);
     await prefs.setBool('ent_edge_yolo', offlineYoloEnabled);
     await prefs.setBool('ent_edge_mlkit', offlineMlKitMediaPipeEnabled);
@@ -315,11 +319,11 @@ class OfflineEdgeVisionEngine {
     }
   }
 
-  // Runs free on-device pre-filtering using MobileNet, YOLO, and ML Kit/MediaPipe signals
   static Future<OfflineEdgeResult> evaluateFrame({
     required Uint8List? previousBytes,
     required Uint8List currentBytes,
     required String promptRule,
+    bool isFirstEverFrame = false,
   }) async {
     await _probeBundledAssets();
 
@@ -333,7 +337,6 @@ class OfflineEdgeVisionEngine {
       );
     }
 
-    // 1. MobileNet fast frame validity & coarse scene change filter (₹0)
     double mobileNetScore = 0.0;
     if (EnterpriseVault.offlineMobileNetEnabled) {
       mobileNetScore = _computeRegionalDiff(
@@ -342,11 +345,10 @@ class OfflineEdgeVisionEngine {
         startRatio: 0.05,
         endRatio: 0.95,
         stepSamples: 450,
-        pixelDeltaThreshold: 24,
+        pixelDeltaThreshold: 26,
       );
     }
 
-    // 2. YOLO object/region activity detector (₹0)
     double yoloScore = 0.0;
     if (EnterpriseVault.offlineYoloEnabled) {
       yoloScore = _computeRegionalDiff(
@@ -355,11 +357,10 @@ class OfflineEdgeVisionEngine {
         startRatio: 0.15,
         endRatio: 0.85,
         stepSamples: 600,
-        pixelDeltaThreshold: 28,
+        pixelDeltaThreshold: 30,
       );
     }
 
-    // 3. ML Kit / MediaPipe face, posture & body motion tracker (₹0)
     double mlKitScore = 0.0;
     if (EnterpriseVault.offlineMlKitMediaPipeEnabled) {
       final upperBodyMotion = _computeRegionalDiff(
@@ -368,7 +369,7 @@ class OfflineEdgeVisionEngine {
         startRatio: 0.10,
         endRatio: 0.55,
         stepSamples: 300,
-        pixelDeltaThreshold: 22,
+        pixelDeltaThreshold: 24,
       );
       final lowerBodyOrFallMotion = _computeRegionalDiff(
         previousBytes,
@@ -376,7 +377,7 @@ class OfflineEdgeVisionEngine {
         startRatio: 0.50,
         endRatio: 0.90,
         stepSamples: 300,
-        pixelDeltaThreshold: 22,
+        pixelDeltaThreshold: 24,
       );
       mlKitScore = (upperBodyMotion * 0.55) + (lowerBodyOrFallMotion * 0.45);
     }
@@ -398,27 +399,24 @@ class OfflineEdgeVisionEngine {
     }
 
     double avgSignal =
-        activeEngines > 0 ? (combinedSignal / activeEngines) : 100.0;
+        activeEngines > 0 ? (combinedSignal / activeEngines) : 0.0;
 
-    // Prompt-aware sensitivity tuning
     final lowerPrompt = promptRule.toLowerCase();
-    double wakeThreshold = 10.0;
+    double wakeThreshold = 14.0;
     if (lowerPrompt.contains("child") ||
         lowerPrompt.contains("elderly") ||
         lowerPrompt.contains("fall") ||
-        lowerPrompt.contains("count")) {
-      wakeThreshold = 7.0;
-    } else if (lowerPrompt.contains("driver") ||
-        lowerPrompt.contains("scratch") ||
-        lowerPrompt.contains("vehicle")) {
-      wakeThreshold = 8.5;
+        lowerPrompt.contains("theft")) {
+      wakeThreshold = 12.0;
+    } else if (lowerPrompt.contains("count")) {
+      wakeThreshold = 11.0;
     }
 
-    bool triggerAi = previousBytes == null
-        ? true
-        : (avgSignal >= wakeThreshold ||
-            yoloScore >= (wakeThreshold + 2.0) ||
-            mlKitScore >= (wakeThreshold + 1.5));
+    bool triggerAi = isFirstEverFrame ||
+        previousBytes == null ||
+        avgSignal >= wakeThreshold ||
+        yoloScore >= (wakeThreshold + 3.0) ||
+        mlKitScore >= (wakeThreshold + 2.5);
 
     final modelTag =
         "YOLO(${_hasYoloAsset ? 'TFLite' : 'Edge'}:${yoloScore.toStringAsFixed(1)}%) | "
@@ -442,7 +440,7 @@ class OfflineEdgeVisionEngine {
     required int stepSamples,
     required int pixelDeltaThreshold,
   }) {
-    if (prev == null) return 15.0;
+    if (prev == null) return 0.0;
     final minLen = prev.length < curr.length ? prev.length : curr.length;
     if (minLen < 250) return 0.0;
 
@@ -472,10 +470,11 @@ class OfflineEdgeVisionEngine {
 // ============================================================================
 
 class QwenVisionIntelligenceService {
-static Future inspectCameraFrame({
-      
+  static Future> inspectCameraFrame({
     required CameraNodeConfig camera,
     required bool isAutoWatchdog,
+    Uint8List? preFetchedBytes,
+    String? preComputedEdgeSummary,
   }) async {
     if (EnterpriseVault.groqApiKey.trim().isEmpty ||
         !EnterpriseVault.groqApiKey.startsWith("gsk_")) {
@@ -489,46 +488,50 @@ static Future inspectCameraFrame({
     }
 
     try {
-      final snapUrl = camera.streamUrl.endsWith('/video')
-          ? camera.streamUrl.replaceAll('/video', '/shot.jpg')
-          : camera.streamUrl;
+      Uint8List imageBytes;
+      if (preFetchedBytes != null && preFetchedBytes.isNotEmpty) {
+        imageBytes = preFetchedBytes;
+      } else {
+        final snapUrl = camera.streamUrl.endsWith('/video')
+            ? camera.streamUrl.replaceAll('/video', '/shot.jpg')
+            : camera.streamUrl;
 
-      final uri = Uri.parse(snapUrl).replace(
-        queryParameters: {
-          ...Uri.parse(snapUrl).queryParameters,
-          '_t': DateTime.now().millisecondsSinceEpoch.toString(),
-        },
-      );
+        final uri = Uri.parse(snapUrl).replace(
+          queryParameters: {
+            ...Uri.parse(snapUrl).queryParameters,
+            '_t': DateTime.now().millisecondsSinceEpoch.toString(),
+          },
+        );
 
-      final imgResponse =
-          await http.get(uri).timeout(const Duration(seconds: 10));
+        final imgResponse =
+            await http.get(uri).timeout(const Duration(seconds: 10));
 
-      if (imgResponse.statusCode != 200 || imgResponse.bodyBytes.isEmpty) {
-        return {
-          "success": false,
-          "isThreat": false,
-          "message": "Stream Offline: HTTP ${imgResponse.statusCode}",
-          "base64Image": null,
-        };
+        if (imgResponse.statusCode != 200 || imgResponse.bodyBytes.isEmpty) {
+          return {
+            "success": false,
+            "isThreat": false,
+            "message": "Stream Offline: HTTP ${imgResponse.statusCode}",
+            "base64Image": null,
+          };
+        }
+        imageBytes = imgResponse.bodyBytes;
       }
 
-      Uint8List imageBytes = imgResponse.bodyBytes;
-      final prevBytes = camera.lastFrameBytes;
-
       final edgeResult = await OfflineEdgeVisionEngine.evaluateFrame(
-        previousBytes: prevBytes,
+        previousBytes: camera.lastFrameBytes,
         currentBytes: imageBytes,
         promptRule: EnterpriseVault.masterSecurityPrompt,
       );
 
       camera.lastFrameBytes = imageBytes;
+      final summaryText = preComputedEdgeSummary ?? edgeResult.edgeSummary;
 
       if (isAutoWatchdog && !edgeResult.shouldWakeCloudAi) {
         return {
           "success": true,
           "skippedByEdge": true,
           "isThreat": false,
-          "message": "STATUS: SAFE • ${edgeResult.edgeSummary}",
+          "message": "STATUS: SAFE • $summaryText",
           "base64Image": null,
         };
       }
@@ -539,7 +542,8 @@ static Future inspectCameraFrame({
           Uri.parse("https://api.groq.com/openai/v1/chat/completions");
 
       String languageInstruction =
-          "CRITICAL: Reply and write your complete analysis strictly in the following language: ${EnterpriseVault.selectedLanguage}.";
+          "CRITICAL: Write your entire response cleanly in ${EnterpriseVault.selectedLanguage}. "
+          "Do not use corrupted characters or broken symbols. Be clear, structured, and easy to read in logs.";
 
       final payload = {
         "model": EnterpriseVault.qwenModelName.trim(),
@@ -550,7 +554,7 @@ static Future inspectCameraFrame({
               {
                 "type": "text",
                 "text":
-                    "Camera Location: ${camera.name} (${camera.zone}).\nEdge Pre-Check: ${edgeResult.edgeSummary}\n$languageInstruction\nPrompt Rule: ${EnterpriseVault.masterSecurityPrompt}"
+                    "Camera Location: ${camera.name} (${camera.zone}).\nEdge Pre-Check: $summaryText\n$languageInstruction\nPrompt Rule: ${EnterpriseVault.masterSecurityPrompt}"
               },
               {
                 "type": "image_url",
@@ -562,7 +566,7 @@ static Future inspectCameraFrame({
           }
         ],
         "temperature": 0.1,
-        "max_tokens": 250,
+        "max_tokens": 300,
       };
 
       final aiResponse = await http
@@ -576,8 +580,10 @@ static Future inspectCameraFrame({
           )
           .timeout(const Duration(seconds: 20));
 
+      final decodedBodyStr = utf8.decode(aiResponse.bodyBytes);
+
       if (aiResponse.statusCode == 200) {
-        final data = jsonDecode(aiResponse.body);
+        final data = jsonDecode(decodedBodyStr);
         String reply =
             data['choices'][0]['message']['content']?.toString().trim() ??
                 "No response";
@@ -600,17 +606,20 @@ static Future inspectCameraFrame({
           "success": true,
           "skippedByEdge": false,
           "isThreat": threatDetected,
-          "message": "$reply\n[${edgeResult.edgeSummary}]",
+          "message": "$reply\n[$summaryText]",
           "base64Image": base64Image,
         };
       } else {
-        final errData = jsonDecode(aiResponse.body);
-        String errMsg = errData['error']?['message'] ?? aiResponse.body;
+        String errMsg = decodedBodyStr;
+        try {
+          final errData = jsonDecode(decodedBodyStr);
+          errMsg = errData['error']?['message'] ?? decodedBodyStr;
+        } catch (_) {}
         return {
           "success": false,
           "isThreat": false,
           "message": "Qwen API Error (${aiResponse.statusCode}): $errMsg",
-          "base64Image": null,
+          "base64Image": base64Image,
         };
       }
     } catch (e) {
@@ -751,46 +760,79 @@ class _MainCommandDashboardState extends State<MainCommandDashboard> {
       if (armedCameras.isEmpty) return;
 
       for (var cam in armedCameras) {
+        if (_isScanningAi) break;
         await _checkMotionAndWakeAi(cam);
       }
     });
   }
 
+  bool _isCameraInQwenCooldown(CameraNodeConfig cam) {
+    if (cam.lastQwenCallTime == null) return false;
+    final elapsedSeconds =
+        DateTime.now().difference(cam.lastQwenCallTime!).inSeconds;
+    return elapsedSeconds < EnterpriseVault.qwenCooldownSeconds;
+  }
+
   Future<void> _checkMotionAndWakeAi(CameraNodeConfig cam) async {
+    if (cam.streamUrl.trim().isEmpty) return;
     try {
       final snapUrl = cam.streamUrl.endsWith('/video')
           ? cam.streamUrl.replaceAll('/video', '/shot.jpg')
           : cam.streamUrl;
 
-      final response = await http
-          .get(Uri.parse(snapUrl))
-          .timeout(const Duration(seconds: 3));
+      final uri = Uri.parse(snapUrl).replace(
+        queryParameters: {
+          ...Uri.parse(snapUrl).queryParameters,
+          '_t': DateTime.now().millisecondsSinceEpoch.toString(),
+        },
+      );
+
+      final response =
+          await http.get(uri).timeout(const Duration(seconds: 3));
 
       if (response.statusCode == 200 && response.bodyBytes.isNotEmpty) {
         final currentBytes = response.bodyBytes;
         final prevBytes = cam.lastFrameBytes;
+        final isFirstEver = prevBytes == null;
 
         final edge = await OfflineEdgeVisionEngine.evaluateFrame(
           previousBytes: prevBytes,
           currentBytes: currentBytes,
           promptRule: EnterpriseVault.masterSecurityPrompt,
+          isFirstEverFrame: isFirstEver,
         );
 
         cam.lastFrameBytes = currentBytes;
 
         if (edge.shouldWakeCloudAi) {
+          if (_isCameraInQwenCooldown(cam)) {
+            final remaining = EnterpriseVault.qwenCooldownSeconds -
+                DateTime.now().difference(cam.lastQwenCallTime!).inSeconds;
+            if (mounted) {
+              setState(() {
+                _currentWatchdogStatusText =
+                    "⏳ EDGE ACTIVE • QWEN COOLDOWN (${remaining}s left on ${cam.name})";
+              });
+            }
+            return;
+          }
+
           if (mounted) {
             setState(() {
               _currentWatchdogStatusText =
-                  "⚡ EDGE TRIGGER (${cam.name}): WAKING QWEN...";
+                  "⚡ EDGE ALERT (${cam.name}): SENDING 1 FRAME TO QWEN...";
             });
           }
-          await _triggerAiForMotion(cam);
+          await _triggerAiForMotion(
+            cam,
+            frameBytes: currentBytes,
+            edgeSummary: edge.edgeSummary,
+          );
         } else {
           if (mounted) {
             setState(() {
               _currentWatchdogStatusText =
-                  "💤 OFFLINE EDGE ACTIVE (₹0 • ${edge.edgeSummary})";
+                  "🟢 LOCAL EDGE RUNNING (₹0 • ${edge.edgeSummary})";
             });
           }
         }
@@ -798,9 +840,15 @@ class _MainCommandDashboardState extends State<MainCommandDashboard> {
     } catch (_) {}
   }
 
-  Future<void> _triggerAiForMotion(CameraNodeConfig targetCam) async {
+  Future<void> _triggerAiForMotion(
+    CameraNodeConfig targetCam, {
+    required Uint8List frameBytes,
+    required String edgeSummary,
+  }) async {
     if (_isScanningAi) return;
     _isScanningAi = true;
+    targetCam.lastQwenCallTime = DateTime.now();
+    targetCam.lastQwenSentFrameBytes = frameBytes;
 
     if (mounted) {
       setState(() {
@@ -811,6 +859,8 @@ class _MainCommandDashboardState extends State<MainCommandDashboard> {
     final result = await QwenVisionIntelligenceService.inspectCameraFrame(
       camera: targetCam,
       isAutoWatchdog: true,
+      preFetchedBytes: frameBytes,
+      preComputedEdgeSummary: edgeSummary,
     );
 
     if (mounted) {
@@ -818,7 +868,7 @@ class _MainCommandDashboardState extends State<MainCommandDashboard> {
         _scanningCameraIds.remove(targetCam.id);
         _isScanningAi = false;
         _currentWatchdogStatusText =
-            "Qwen Checked: ${targetCam.name} (${DateTime.now().toString().substring(11, 19)})";
+            "Qwen Sent Once (${EnterpriseVault.qwenCooldownSeconds}s cooldown): ${targetCam.name}";
       });
     }
 
@@ -827,13 +877,14 @@ class _MainCommandDashboardState extends State<MainCommandDashboard> {
       String analysis = result["message"];
       targetCam.lastAiVerdict = isThreat ? "ALERT DETECTED!" : "SAFE";
 
-      if (isThreat) {
-        _handleSecurityBreachDetected(
-          camera: targetCam,
-          analysis: analysis,
-          base64Clip: result["base64Image"],
-        );
-      }
+      // Save clear log with image evidence whenever Qwen analyzes an event
+      _saveEventLogWithImage(
+        camera: targetCam,
+        severity: isThreat ? "CRITICAL" : "AUTO-AUDIT",
+        analysis: analysis,
+        base64Clip: result["base64Image"],
+        showAlertDialog: isThreat,
+      );
       await EnterpriseVault.saveAllToDisk();
     }
   }
@@ -858,14 +909,19 @@ class _MainCommandDashboardState extends State<MainCommandDashboard> {
     bool isSuccess = result["success"] == true;
     bool isThreat = result["isThreat"] == true;
     String analysis = result["message"];
+    final String? base64Img = result["base64Image"];
 
-    if (isSuccess && isThreat) {
-      _handleSecurityBreachDetected(
+    if (isSuccess) {
+      _saveEventLogWithImage(
         camera: camera,
+        severity: isThreat ? "CRITICAL" : "AUDIT",
         analysis: analysis,
-        base64Clip: result["base64Image"],
+        base64Clip: base64Img,
+        showAlertDialog: isThreat,
       );
-    } else {
+    }
+
+    if (!(isSuccess && isThreat)) {
       showDialog(
         context: context,
         builder: (ctx) => AlertDialog(
@@ -903,6 +959,18 @@ class _MainCommandDashboardState extends State<MainCommandDashboard> {
                   style: const TextStyle(fontSize: 10, color: Colors.white54),
                 ),
                 const Divider(height: 16),
+                if (base64Img != null) ...[
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Image.memory(
+                      base64Decode(base64Img),
+                      height: 140,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                ],
                 Text(
                   analysis,
                   style: const TextStyle(fontSize: 12, color: Colors.white),
@@ -923,112 +991,119 @@ class _MainCommandDashboardState extends State<MainCommandDashboard> {
     await EnterpriseVault.saveAllToDisk();
   }
 
-  void _handleSecurityBreachDetected({
+  void _saveEventLogWithImage({
     required CameraNodeConfig camera,
+    required String severity,
     required String analysis,
     required String? base64Clip,
+    required bool showAlertDialog,
   }) {
-    HapticFeedback.heavyImpact();
-    Future.delayed(const Duration(milliseconds: 300), () {
+    if (showAlertDialog) {
       HapticFeedback.heavyImpact();
-    });
+      Future.delayed(const Duration(milliseconds: 300), () {
+        HapticFeedback.heavyImpact();
+      });
+    }
 
     final newLog = SecurityIncidentLog(
-      id: "INC-${DateTime.now().millisecondsSinceEpoch}",
+      id: "LOG-${DateTime.now().millisecondsSinceEpoch}",
       timestamp: DateTime.now().toString().substring(0, 19),
-      cameraName: "${camera.name} [${camera.zone}]",
-      severity: "CRITICAL",
+      cameraName: "${camera.name} [${camera.zone}] • ${EnterpriseVault.selectedLanguage}",
+      severity: severity,
       aiAnalysis: analysis,
       snapshotUrl: camera.streamUrl,
       base64Evidence: base64Clip,
     );
 
     setState(() {
-      camera.lastAiVerdict = "ALERT LOGGED";
+      camera.lastAiVerdict = showAlertDialog ? "ALERT LOGGED" : "LOGGED";
       EnterpriseVault.incidentLogs.insert(0, newLog);
     });
 
     EnterpriseVault.saveAllToDisk();
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text("🚨 Alert Logged: ${camera.name}"),
-        backgroundColor: Colors.redAccent,
-      ),
-    );
+    if (showAlertDialog) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("🚨 Alert Logged with Image: ${camera.name}"),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
 
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF2B0B0E),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-          side: const BorderSide(color: Colors.redAccent, width: 2),
-        ),
-        title: Row(
-          children: const [
-            Icon(Icons.emergency_share, color: Colors.redAccent, size: 24),
-            SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                "🚨 PROMPT ALERT LOGGED!",
-                style: TextStyle(
-                    color: Colors.redAccent,
-                    fontSize: 13,
-                    fontWeight: FontWeight.bold),
-              ),
-            ),
-          ],
-        ),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text("Camera: ${camera.name}",
-                  style: const TextStyle(
-                      fontWeight: FontWeight.bold, fontSize: 12)),
-              Text("Time: ${newLog.timestamp}",
-                  style: const TextStyle(fontSize: 10, color: Colors.white70)),
-              const SizedBox(height: 8),
-              if (base64Clip != null)
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: Image.memory(
-                    base64Decode(base64Clip),
-                    height: 150,
-                    width: double.infinity,
-                    fit: BoxFit.cover,
-                  ),
-                ),
-              const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.black45,
-                  borderRadius: BorderRadius.circular(6),
-                ),
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          backgroundColor: const Color(0xFF2B0B0E),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: const BorderSide(color: Colors.redAccent, width: 2),
+          ),
+          title: Row(
+            children: const [
+              Icon(Icons.emergency_share, color: Colors.redAccent, size: 24),
+              SizedBox(width: 8),
+              Expanded(
                 child: Text(
-                  analysis,
-                  style: const TextStyle(
-                      color: Colors.amberAccent,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w500),
+                  "🚨 PROMPT ALERT LOGGED!",
+                  style: TextStyle(
+                      color: Colors.redAccent,
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold),
                 ),
               ),
             ],
           ),
-        ),
-        actions: [
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text("ACKNOWLEDGE",
-                style: TextStyle(color: Colors.white, fontSize: 11)),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text("Camera: ${camera.name}",
+                    style: const TextStyle(
+                        fontWeight: FontWeight.bold, fontSize: 12)),
+                Text("Time: ${newLog.timestamp}",
+                    style:
+                        const TextStyle(fontSize: 10, color: Colors.white70)),
+                const SizedBox(height: 8),
+                if (base64Clip != null)
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Image.memory(
+                      base64Decode(base64Clip),
+                      height: 150,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.black45,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    analysis,
+                    style: const TextStyle(
+                        color: Colors.amberAccent,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500),
+                  ),
+                ),
+              ],
+            ),
           ),
-        ],
-      ),
-    );
+          actions: [
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text("ACKNOWLEDGE",
+                  style: TextStyle(color: Colors.white, fontSize: 11)),
+            ),
+          ],
+        ),
+      );
+    }
   }
 
   void _openFullScreenCamera(CameraNodeConfig camera) {
@@ -1468,7 +1543,7 @@ class _FullScreenCameraMonitorState extends State<FullScreenCameraMonitor> {
 }
 
 // ============================================================================
-// 8. INCIDENT LOGS SCREEN (WITH TEXT FEEDBACK)
+// 8. INCIDENT LOGS SCREEN (CLEAR IMAGE EVIDENCE + TEXT + FEEDBACK)
 // ============================================================================
 
 class IncidentLogsScreen extends StatefulWidget {
@@ -1492,7 +1567,7 @@ class _IncidentLogsScreenState extends State<IncidentLogsScreen> {
           controller: controller,
           maxLines: 3,
           decoration: const InputDecoration(
-            hintText: "Write note/feedback for this alert...",
+            hintText: "Write note/feedback for this log...",
           ),
         ),
         actions: [
@@ -1520,8 +1595,8 @@ class _IncidentLogsScreenState extends State<IncidentLogsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Extracted Breach Clips, Logs & Feedback",
-            style: TextStyle(fontSize: 14)),
+        title: const Text("Clear Evidence Logs (Image + Report)",
+            style: TextStyle(fontSize: 13.5)),
         actions: [
           if (EnterpriseVault.incidentLogs.isNotEmpty)
             IconButton(
@@ -1545,13 +1620,13 @@ class _IncidentLogsScreenState extends State<IncidentLogsScreen> {
                       size: 48, color: Colors.greenAccent),
                   SizedBox(height: 12),
                   Text(
-                    "No Alerts Recorded Yet",
+                    "No Logs Recorded Yet",
                     style:
                         TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
                   ),
                   SizedBox(height: 4),
                   Text(
-                    "Logs appear here whenever your prompt triggers an alert.",
+                    "Logs with captured image & analysis appear here.",
                     style: TextStyle(fontSize: 11, color: Colors.white54),
                   ),
                 ],
@@ -1562,11 +1637,15 @@ class _IncidentLogsScreenState extends State<IncidentLogsScreen> {
               itemCount: EnterpriseVault.incidentLogs.length,
               itemBuilder: (context, index) {
                 final log = EnterpriseVault.incidentLogs[index];
+                final isCritical = log.severity == "CRITICAL";
                 return Card(
                   margin: const EdgeInsets.only(bottom: 12),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10),
-                    side: const BorderSide(color: Colors.redAccent, width: 1),
+                    side: BorderSide(
+                      color: isCritical ? Colors.redAccent : Colors.cyanAccent,
+                      width: 1,
+                    ),
                   ),
                   child: Padding(
                     padding: const EdgeInsets.all(12),
@@ -1576,13 +1655,19 @@ class _IncidentLogsScreenState extends State<IncidentLogsScreen> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(
-                              log.cameraName,
-                              style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.redAccent,
-                                  fontSize: 12),
+                            Expanded(
+                              child: Text(
+                                "${log.severity} • ${log.cameraName}",
+                                style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: isCritical
+                                        ? Colors.redAccent
+                                        : Colors.cyanAccent,
+                                    fontSize: 11.5),
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             ),
+                            const SizedBox(width: 8),
                             Text(
                               log.timestamp,
                               style: const TextStyle(
@@ -1591,21 +1676,47 @@ class _IncidentLogsScreenState extends State<IncidentLogsScreen> {
                           ],
                         ),
                         const SizedBox(height: 8),
-                        if (log.base64Evidence != null)
+                        if (log.base64Evidence != null &&
+                            log.base64Evidence!.isNotEmpty)
                           ClipRRect(
                             borderRadius: BorderRadius.circular(8),
                             child: Image.memory(
                               base64Decode(log.base64Evidence!),
-                              height: 160,
+                              height: 175,
                               width: double.infinity,
                               fit: BoxFit.cover,
                             ),
+                          )
+                        else
+                          Container(
+                            height: 90,
+                            width: double.infinity,
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              color: Colors.black26,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Text(
+                              "No Image Snapshot Attached",
+                              style: TextStyle(
+                                  fontSize: 11, color: Colors.white54),
+                            ),
                           ),
                         const SizedBox(height: 8),
-                        Text(
-                          log.aiAnalysis,
-                          style: const TextStyle(
-                              fontSize: 11.5, color: Colors.amberAccent),
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.black38,
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            log.aiAnalysis,
+                            style: const TextStyle(
+                                fontSize: 12,
+                                color: Colors.amberAccent,
+                                height: 1.35),
+                          ),
                         ),
                         if (log.userFeedback != null &&
                             log.userFeedback!.isNotEmpty) ...[
@@ -1636,7 +1747,7 @@ class _IncidentLogsScreenState extends State<IncidentLogsScreen> {
 }
 
 // ============================================================================
-// 9. MASTER CONFIGURATION SCREEN (PROMPT PRESETS + 3 OFFLINE MODELS + CAMS)
+// 9. MASTER CONFIGURATION SCREEN (PROMPT PRESETS + 3 OFFLINE MODELS + 10 LANGS)
 // ============================================================================
 
 class MasterConfigurationScreen extends StatefulWidget {
@@ -1651,6 +1762,7 @@ class _MasterConfigurationScreenState extends State<MasterConfigurationScreen> {
   late TextEditingController _apiKeyController;
   late TextEditingController _qwenModelController;
   late TextEditingController _promptController;
+  late TextEditingController _cooldownController;
   final TextEditingController _newCamNameController = TextEditingController();
   final TextEditingController _newCamUrlController = TextEditingController();
   String _selectedZone = "HIGH-SECURITY";
@@ -1668,12 +1780,18 @@ class _MasterConfigurationScreenState extends State<MasterConfigurationScreen> {
     "PUBLIC",
   ];
 
+  // 10 supported output languages
   final List<String> _languagesList = [
     "Hindi (हिन्दी)",
     "English",
-    "Punjabi (ਪੰਜਾਬੀ)",
     "Haryanvi (हरियाणवी)",
-    "Spanglish / Hinglish",
+    "Hinglish (Hindi + English)",
+    "Punjabi (ਪੰਜਾਬੀ)",
+    "Bengali (বাংলা)",
+    "Marathi (मराठी)",
+    "Gujarati (ગુજરાતી)",
+    "Tamil (தமிழ்)",
+    "Telugu (తెలుగు)",
   ];
 
   final Map<String, String> _presetLabels = {
@@ -1691,7 +1809,11 @@ class _MasterConfigurationScreenState extends State<MasterConfigurationScreen> {
         TextEditingController(text: EnterpriseVault.qwenModelName);
     _promptController =
         TextEditingController(text: EnterpriseVault.masterSecurityPrompt);
-    _selectedLang = EnterpriseVault.selectedLanguage;
+    _cooldownController = TextEditingController(
+        text: EnterpriseVault.qwenCooldownSeconds.toString());
+    _selectedLang = _languagesList.contains(EnterpriseVault.selectedLanguage)
+        ? EnterpriseVault.selectedLanguage
+        : "Hindi (हिन्दी)";
     _selectedPreset = EnterpriseVault.activeModePreset;
     _yoloOn = EnterpriseVault.offlineYoloEnabled;
     _mlKitOn = EnterpriseVault.offlineMlKitMediaPipeEnabled;
@@ -1704,6 +1826,9 @@ class _MasterConfigurationScreenState extends State<MasterConfigurationScreen> {
         ? "qwen-2.5-vl-72b"
         : _qwenModelController.text.trim();
     EnterpriseVault.masterSecurityPrompt = _promptController.text.trim();
+    final parsedCooldown = int.tryParse(_cooldownController.text.trim());
+    EnterpriseVault.qwenCooldownSeconds =
+        (parsedCooldown == null || parsedCooldown < 5) ? 45 : parsedCooldown;
     EnterpriseVault.activeModePreset = _selectedPreset;
     EnterpriseVault.selectedLanguage = _selectedLang;
     EnterpriseVault.offlineYoloEnabled = _yoloOn;
@@ -1729,7 +1854,7 @@ class _MasterConfigurationScreenState extends State<MasterConfigurationScreen> {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text("✅ Prompt, 3 Edge Models, Language & Cameras Saved!"),
+        content: Text("✅ 10 Languages, Clear Image Logs & Edge Suite Saved!"),
         backgroundColor: Colors.green,
       ),
     );
@@ -1785,6 +1910,25 @@ class _MasterConfigurationScreenState extends State<MasterConfigurationScreen> {
               ),
             ),
             const SizedBox(height: 14),
+            const Text("2b. Qwen API Cooldown (Seconds Between Auto Calls)",
+                style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.cyanAccent,
+                    fontSize: 12)),
+            const SizedBox(height: 6),
+            TextField(
+              controller: _cooldownController,
+              keyboardType: TextInputType.number,
+              style: const TextStyle(fontSize: 12, color: Colors.amberAccent),
+              decoration: InputDecoration(
+                hintText: "Default 45 sec (prevents API quota drain)",
+                filled: true,
+                fillColor: const Color(0xFF161F30),
+                border:
+                    OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+            ),
+            const SizedBox(height: 14),
             const Text("3. Offline Edge Models (₹0 On-Device Pre-Filter)",
                 style: TextStyle(
                     fontWeight: FontWeight.bold,
@@ -1815,7 +1959,7 @@ class _MasterConfigurationScreenState extends State<MasterConfigurationScreen> {
               onChanged: (v) => setState(() => _mobileNetOn = v),
             ),
             const SizedBox(height: 10),
-            const Text("4. Output Language",
+            const Text("4. Output Language (10 Languages)",
                 style: TextStyle(
                     fontWeight: FontWeight.bold,
                     color: Colors.amberAccent,
