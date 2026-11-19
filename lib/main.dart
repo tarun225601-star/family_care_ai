@@ -470,7 +470,7 @@ class OfflineEdgeVisionEngine {
 // ============================================================================
 
 class QwenVisionIntelligenceService {
-  static Future> inspectCameraFrame({
+  static Future inspectCameraFrame({
     required CameraNodeConfig camera,
     required bool isAutoWatchdog,
     Uint8List? preFetchedBytes,
